@@ -66,6 +66,7 @@ function setSyncStatus(message,state){
 function cleanTable(){
  tb.querySelectorAll('.col-txt').forEach(el=>{
   el.removeAttribute('contenteditable');
+  el.onblur=null;
   if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML='';
  });
 }
@@ -86,12 +87,32 @@ async function loadData(){
  }
 }
 
-function openGitEditor(){
- window.open('https://github.com/annynn1990/wme-list/edit/main/data.json','_blank','noopener');
+function enableEditing(){
+ app.classList.add('is-editing');
+ tb.querySelectorAll('.col-txt').forEach(el=>{
+  el.contentEditable='true';
+  el.onblur=function(){
+   if(this.innerText.trim()==='')this.innerHTML='';
+   setSyncStatus('編輯內容已更新','online');
+  };
+ });
+ tb.querySelectorAll('.wm-portrait-box').forEach(box=>{
+  box.onclick=function(){
+   const n=prompt('輸入新肖像網址：');
+   if(n){
+    const img=document.createElement('img');
+    img.src=n;
+    img.className='wm-portrait-img';
+    this.replaceChildren(img);
+    setSyncStatus('編輯內容已更新','online');
+   }
+  };
+ });
+ setSyncStatus('編輯模式','loading');
 }
 
 document.getElementById('edit-trigger').onclick=()=>{
- if(prompt('管理員驗證：')==='1111')openGitEditor();
+ if(prompt('管理員驗證：')==='1111')enableEditing();
  else alert('驗證失敗。');
 };
 
