@@ -23,9 +23,19 @@ h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}
 .wm-portrait-box{width:80px;height:100px;background:#faf9f6;border:1px solid var(--gold);margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px;position:relative}
 .wm-portrait-img{width:100%;height:100%;object-fit:cover}
 .name-field{color:#202122!important;font-family:inherit!important;font-size:16px!important;font-weight:normal!important;text-align:center}
-.name-field:empty::before{content:"《懸缺》";color:#bdc3c7;font-style:italic;font-weight:normal}
+.name-field:empty::before{content:"懸缺";color:#bdc3c7;font-style:italic;font-weight:normal}
 .is-editing [contenteditable=true]{outline:2px dashed var(--purple)!important;background:#f7f9ff!important;cursor:text}
 .sync{font-size:12px;color:#7f8c8d;font-style:italic;border-left:3px solid var(--gold);padding-left:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+#sync-status{display:inline-flex;align-items:center;gap:7px;font-style:normal;font-weight:600;white-space:nowrap}
+#sync-status::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+#sync-status.online{color:#27ae60!important}
+#sync-status.online::before{animation:status-breathe 1.8s ease-in-out infinite;box-shadow:0 0 5px currentColor}
+#sync-status.loading{color:#f1c40f!important}
+#sync-status.error{color:#e74c3c!important}
+@keyframes status-breathe{
+  0%,100%{opacity:.6;box-shadow:0 0 4px currentColor,0 0 8px rgba(39,174,96,.25)}
+  50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.55)}
+}
 @media(max-width:700px){
  .wm-privy-wrapper{margin:0;padding:15px;border-left:0;border-right:0}
  h1{font-size:23px}
@@ -41,21 +51,27 @@ h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}
 <div id="edit-trigger" title="管理員編輯">⚙️</div>
 <div class="header"><h1>司憲院制司受憲秘閣院職官表</h1><div class="subtitle">Privy Council — List of Imperial Secretarial Officials</div></div>
 <div class="table-scroll"><table class="wm-privy-table"><thead><tr><th style="width:100px">肖像</th><th style="width:200px">職銜 (Official Title)</th><th style="width:100px">職等 / 定員</th><th style="width:160px">官員名稱</th><th>職掌備註 (Notes)</th></tr></thead><tbody id="table-body"></tbody></table></div>
-<div class="sync"><span>註：司憲院為皇家直屬秘書機關，直接向皇帝負責，獨立於內閣行政體系。</span><span id="sync-status">● 準備就緒</span></div>
+<div class="sync"><span>註：司憲院為皇家直屬秘書機關，直接向皇帝負責，獨立於內閣行政體系。</span><span id="sync-status" class="loading">讀取資料中</span></div>
 </main>
 
 <script>
-const app=document.getElementById('privy-app');
 const tb=document.getElementById('table-body');
-function setSyncStatus(m,c){const s=document.getElementById('sync-status');s.textContent='● '+m;s.style.color=c}
+const syncStatus=document.getElementById('sync-status');
+
+function setSyncStatus(message,state){
+ syncStatus.textContent=message;
+ syncStatus.className=state;
+}
+
 function cleanTable(){
  tb.querySelectorAll('.col-txt').forEach(el=>{
   el.removeAttribute('contenteditable');
   if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML='';
  });
 }
+
 async function loadData(){
- setSyncStatus('讀取 Git 雲端資料...','#f1c40f');
+ setSyncStatus('讀取資料中','loading');
  try{
   const r=await fetch('./data.json?ts='+Date.now(),{cache:'no-store'});
   if(!r.ok)throw new Error('HTTP '+r.status);
@@ -63,19 +79,22 @@ async function loadData(){
   if(!d.savedHTML)throw new Error('資料格式錯誤');
   tb.innerHTML=d.savedHTML;
   cleanTable();
-  setSyncStatus('Git 同步成功','#27ae60');
+  setSyncStatus('正常連線','online');
  }catch(e){
   tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#c0392b">Git 資料讀取失敗</td></tr>';
-  setSyncStatus('Git 讀取失敗','#e74c3c');
+  setSyncStatus('連線失敗','error');
  }
 }
+
 function openGitEditor(){
  window.open('https://github.com/annynn1990/wme-list/edit/main/data.json','_blank','noopener');
 }
+
 document.getElementById('edit-trigger').onclick=()=>{
- if(prompt('管理員驗證：')==='admin') openGitEditor();
+ if(prompt('管理員驗證：')==='1111')openGitEditor();
  else alert('驗證失敗。');
 };
+
 window.addEventListener('load',loadData);
 </script>
 </body>
