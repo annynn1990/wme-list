@@ -43,49 +43,39 @@ h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}
 <div class="table-scroll"><table class="wm-privy-table"><thead><tr><th style="width:100px">肖像</th><th style="width:200px">職銜 (Official Title)</th><th style="width:100px">職等 / 定員</th><th style="width:160px">官員名稱</th><th>職掌備註 (Notes)</th></tr></thead><tbody id="table-body"></tbody></table></div>
 <div class="sync"><span>註：司憲院為皇家直屬秘書機關，直接向皇帝負責，獨立於內閣行政體系。</span><span id="sync-status">● 準備就緒</span></div>
 </main>
-<script src="privy-data.js"></script>
+
 <script>
-const BIN_ID='699aa3ce43b1c97be992ced2';
-const M_KEY='$2a$10$bjCJQ1gPB44evydndrmh6OYfaT8H5SHZ9GTT8gExsKX77.wlp6S6e';
-const app=document.getElementById('privy-app'), tb=document.getElementById('table-body');
+const app=document.getElementById('privy-app');
+const tb=document.getElementById('table-body');
 function setSyncStatus(m,c){const s=document.getElementById('sync-status');s.textContent='● '+m;s.style.color=c}
-function cleanTable(){tb.querySelectorAll('.col-txt').forEach(el=>{el.removeAttribute('contenteditable');if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML=''})}
+function cleanTable(){
+ tb.querySelectorAll('.col-txt').forEach(el=>{
+  el.removeAttribute('contenteditable');
+  if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML='';
+ });
+}
 async function loadData(){
- setSyncStatus('讀取雲端資料...','#f1c40f');
+ setSyncStatus('讀取 Git 雲端資料...','#f1c40f');
  try{
-  const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':M_KEY,'X-Bin-Meta':'false'},cache:'no-store'});
+  const r=await fetch('./data.json?ts='+Date.now(),{cache:'no-store'});
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
-  tb.innerHTML=d&&d.savedHTML?d.savedHTML:INITIAL_STRUCTURE;
-  cleanTable();setSyncStatus('同步成功','#27ae60');
+  if(!d.savedHTML)throw new Error('資料格式錯誤');
+  tb.innerHTML=d.savedHTML;
+  cleanTable();
+  setSyncStatus('Git 同步成功','#27ae60');
  }catch(e){
-  tb.innerHTML=INITIAL_STRUCTURE;cleanTable();setSyncStatus('雲端讀取失敗，使用內建資料','#e67e22');
+  tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#c0392b">Git 資料讀取失敗</td></tr>';
+  setSyncStatus('Git 讀取失敗','#e74c3c');
  }
 }
-async function saveData(){
- if(!app.classList.contains('is-editing'))return;
- setSyncStatus('存檔中...','#f1c40f');
- try{
-  const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':M_KEY},body:JSON.stringify({savedHTML:tb.innerHTML})});
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  setSyncStatus('雲端儲存成功','#27ae60');
- }catch(e){setSyncStatus('儲存失敗','#e74c3c')}
+function openGitEditor(){
+ window.open('https://github.com/annynn1990/wme-list/edit/main/data.json','_blank','noopener');
 }
-function enableEditing(){
- app.classList.add('is-editing');
- tb.querySelectorAll('.col-txt').forEach(el=>{
-  el.contentEditable='true';
-  el.onblur=function(){if(this.innerText.trim()==='')this.innerHTML='';saveData()}
- });
- tb.querySelectorAll('.wm-portrait-box').forEach(box=>{
-  box.onclick=function(){
-   const n=prompt('輸入新肖像網址：');
-   if(n){const img=document.createElement('img');img.src=n;img.className='wm-portrait-img';this.replaceChildren(img);saveData()}
-  }
- });
- setSyncStatus('編輯模式','#4b0082');
-}
-document.getElementById('edit-trigger').onclick=()=>{if(prompt('管理員驗證：')==='admin')enableEditing();else alert('驗證失敗。')};
+document.getElementById('edit-trigger').onclick=()=>{
+ if(prompt('管理員驗證：')==='admin') openGitEditor();
+ else alert('驗證失敗。');
+};
 window.addEventListener('load',loadData);
 </script>
 </body>
