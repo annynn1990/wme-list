@@ -64,12 +64,53 @@ function setSyncStatus(message,state){
  syncStatus.className=state;
 }
 
-function cleanTable(){
- tb.querySelectorAll('.col-txt').forEach(el=>{
-  el.removeAttribute('contenteditable');
-  el.onblur=null;
-  if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML='';
+const LOCAL_KEY='wme-list-privy-edit-html';
+
+function setEditable(el){
+ el.contentEditable='true';
+ el.spellcheck=false;
+ el.oninput=function(){
+  saveLocal();
+ };
+ el.onblur=function(){
+  saveLocal();
+ };
+}
+
+function makeEmptyNamesEditable(){
+ tb.querySelectorAll('.name-field').forEach(el=>{
+  if(!el.textContent.trim()){
+   el.textContent='懸缺';
+   el.dataset.placeholder='true';
+  }
  });
+}
+
+function cleanTable(){
+ tb.querySelectorAll('[contenteditable=true]').forEach(el=>el.removeAttribute('contenteditable'));
+ tb.querySelectorAll('.col-txt').forEach(el=>{
+  el.onblur=null;
+  el.oninput=null;
+ });
+}
+
+function saveLocal(){
+ try{
+  localStorage.setItem(LOCAL_KEY,tb.innerHTML);
+  setSyncStatus('正常連線','online');
+ }catch(e){}
+}
+
+function restoreLocal(){
+ try{
+  const saved=localStorage.getItem(LOCAL_KEY);
+  if(saved){
+   tb.innerHTML=saved;
+   cleanTable();
+   return true;
+  }
+ }catch(e){}
+ return false;
 }
 
 async function loadData(){
@@ -79,37 +120,31 @@ async function loadData(){
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
   if(!d.savedHTML)throw new Error('資料格式錯誤');
-  tb.innerHTML=d.savedHTML;
+
+  const restored=restoreLocal();
+  if(!restored)tb.innerHTML=d.savedHTML;
+
   cleanTable();
   setSyncStatus('正常連線','online');
  }catch(e){
-  tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#c0392b">Git 資料讀取失敗</td></tr>';
+  if(!restoreLocal()){
+   tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#c0392b">Git 資料讀取失敗</td></tr>';
+  }
   setSyncStatus('連線失敗','error');
  }
 }
 
-function bindEditable(el){
- el.contentEditable='true';
- el.onblur=function(){
-  if(this.classList.contains('name-field')&&this.innerText.trim()==='')this.innerHTML='';
-  setSyncStatus('編輯內容已更新','online');
- };
-}
-
 function enableEditing(){
  app.classList.add('is-editing');
+ makeEmptyNamesEditable();
 
- // 頁首所有可見文字
- document.querySelectorAll('.header h1,.header .subtitle').forEach(bindEditable);
-
- // 表格內所有有文字的儲存格（包含標題、職銜、職等、定員、姓名、備註）
- tb.querySelectorAll('th,td').forEach(cell=>{
-  if(cell.innerText.trim())bindEditable(cell);
- });
-
- // 底部說明文字可直接修改；右側連線狀態保留為系統資訊
+ document.querySelectorAll('.header h1,.header .subtitle').forEach(setEditable);
+ document.querySelectorAll('.wm-privy-table th').forEach(setEditable);
+ document.querySelectorAll('.wm-privy-table td.col-txt').forEach(setEditable);
+ document.querySelectorAll('.wm-p-rank').forEach(setEditable);
+ document.querySelectorAll('.wm-privy-table td:not(.col-txt) small').forEach(setEditable);
  const note=document.querySelector('.sync > span:first-child');
- if(note)bindEditable(note);
+ if(note)setEditable(note);
 
  tb.querySelectorAll('.wm-portrait-box').forEach(box=>{
   box.onclick=function(){
@@ -119,7 +154,7 @@ function enableEditing(){
     img.src=n;
     img.className='wm-portrait-img';
     this.replaceChildren(img);
-    setSyncStatus('編輯內容已更新','online');
+    saveLocal();
    }
   };
  });
