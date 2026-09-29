@@ -88,15 +88,29 @@ async function loadData(){
  }
 }
 
+function bindEditable(el){
+ el.contentEditable='true';
+ el.onblur=function(){
+  if(this.classList.contains('name-field')&&this.innerText.trim()==='')this.innerHTML='';
+  setSyncStatus('編輯內容已更新','online');
+ };
+}
+
 function enableEditing(){
  app.classList.add('is-editing');
- tb.querySelectorAll('.col-txt').forEach(el=>{
-  el.contentEditable='true';
-  el.onblur=function(){
-   if(this.innerText.trim()==='')this.innerHTML='';
-   setSyncStatus('編輯內容已更新','online');
-  };
+
+ // 頁首所有可見文字
+ document.querySelectorAll('.header h1,.header .subtitle').forEach(bindEditable);
+
+ // 表格內所有有文字的儲存格（包含標題、職銜、職等、定員、姓名、備註）
+ tb.querySelectorAll('th,td').forEach(cell=>{
+  if(cell.innerText.trim())bindEditable(cell);
  });
+
+ // 底部說明文字可直接修改；右側連線狀態保留為系統資訊
+ const note=document.querySelector('.sync > span:first-child');
+ if(note)bindEditable(note);
+
  tb.querySelectorAll('.wm-portrait-box').forEach(box=>{
   box.onclick=function(){
    const n=prompt('輸入新肖像網址：');
@@ -109,6 +123,7 @@ function enableEditing(){
    }
   };
  });
+
  setSyncStatus('正常連線','online');
 }
 
