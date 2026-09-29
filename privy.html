@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>司憲院制司受憲秘閣院職官表</title>
+<style>
+:root{--purple:#4b0082;--gold:#d4af37;--border:#a2a9b1}
+*{box-sizing:border-box}
+body{margin:0;background:#f5f5f5;color:#202122;font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif}
+.wm-privy-wrapper{max-width:1000px;margin:20px auto;padding:25px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.15);line-height:1.6;position:relative}
+#edit-trigger{position:absolute;top:25px;right:25px;cursor:pointer;font-size:18px;color:#eee;transition:color .3s;z-index:10}
+#edit-trigger:hover{color:var(--purple)}
+.header{border-bottom:3px solid var(--purple);margin-bottom:20px;padding-bottom:10px;padding-right:35px}
+h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}
+.subtitle{font-size:14px;color:#54595d;font-style:italic;margin-top:5px}
+.wm-privy-table{width:100%;border-collapse:collapse;margin-bottom:30px;border:1px solid var(--border);table-layout:fixed}
+.wm-privy-table th{background:#f8f9fa;border:1px solid var(--border);padding:12px 8px;text-align:center;font-weight:bold}
+.wm-privy-table td{border:1px solid var(--border);padding:10px 8px;vertical-align:middle}
+.wm-privy-banner{background:var(--purple)!important;color:#fff!important;font-size:16px;text-align:left!important;padding-left:15px!important;letter-spacing:1px}
+.wm-p-rank-high{display:inline-block;padding:2px 10px;background:var(--purple)!important;color:#f1c40f!important;border:1px solid var(--gold)!important;border-radius:4px;font-size:12px;font-weight:bold}
+.wm-p-rank{display:inline-block;padding:2px 10px;background:#fcf3cf;color:#9a7d0a;border-radius:4px;font-size:12px;font-weight:bold;border:1px solid var(--gold)}
+.wm-portrait-box{width:80px;height:100px;background:#faf9f6;border:1px solid var(--gold);margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px;position:relative}
+.wm-portrait-img{width:100%;height:100%;object-fit:cover}
+.name-field{color:#202122!important;font-family:inherit!important;font-size:16px!important;font-weight:normal!important;text-align:center}
+.name-field:empty::before{content:"《懸缺》";color:#bdc3c7;font-style:italic;font-weight:normal}
+.is-editing [contenteditable=true]{outline:2px dashed var(--purple)!important;background:#f7f9ff!important;cursor:text}
+.sync{font-size:12px;color:#7f8c8d;font-style:italic;border-left:3px solid var(--gold);padding-left:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+@media(max-width:700px){
+ .wm-privy-wrapper{margin:0;padding:15px;border-left:0;border-right:0}
+ h1{font-size:23px}
+ .wm-privy-table{font-size:14px;min-width:760px}
+ .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .wm-portrait-box{width:64px;height:80px}
+ .sync{align-items:flex-start;flex-direction:column}
+}
+</style>
+</head>
+<body>
+<main class="wm-privy-wrapper" id="privy-app">
+<div id="edit-trigger" title="管理員編輯">⚙️</div>
+<div class="header"><h1>司憲院制司受憲秘閣院職官表</h1><div class="subtitle">Privy Council — List of Imperial Secretarial Officials</div></div>
+<div class="table-scroll"><table class="wm-privy-table"><thead><tr><th style="width:100px">肖像</th><th style="width:200px">職銜 (Official Title)</th><th style="width:100px">職等 / 定員</th><th style="width:160px">官員名稱</th><th>職掌備註 (Notes)</th></tr></thead><tbody id="table-body"></tbody></table></div>
+<div class="sync"><span>註：司憲院為皇家直屬秘書機關，直接向皇帝負責，獨立於內閣行政體系。</span><span id="sync-status">● 準備就緒</span></div>
+</main>
+<script src="privy-data.js"></script>
+<script>
+const BIN_ID='699aa3ce43b1c97be992ced2';
+const M_KEY='$2a$10$bjCJQ1gPB44evydndrmh6OYfaT8H5SHZ9GTT8gExsKX77.wlp6S6e';
+const app=document.getElementById('privy-app'), tb=document.getElementById('table-body');
+function setSyncStatus(m,c){const s=document.getElementById('sync-status');s.textContent='● '+m;s.style.color=c}
+function cleanTable(){tb.querySelectorAll('.col-txt').forEach(el=>{el.removeAttribute('contenteditable');if(el.classList.contains('name-field')&&el.innerText.trim()==='')el.innerHTML=''})}
+async function loadData(){
+ setSyncStatus('讀取雲端資料...','#f1c40f');
+ try{
+  const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':M_KEY,'X-Bin-Meta':'false'},cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const d=await r.json();
+  tb.innerHTML=d&&d.savedHTML?d.savedHTML:INITIAL_STRUCTURE;
+  cleanTable();setSyncStatus('同步成功','#27ae60');
+ }catch(e){
+  tb.innerHTML=INITIAL_STRUCTURE;cleanTable();setSyncStatus('雲端讀取失敗，使用內建資料','#e67e22');
+ }
+}
+async function saveData(){
+ if(!app.classList.contains('is-editing'))return;
+ setSyncStatus('存檔中...','#f1c40f');
+ try{
+  const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':M_KEY},body:JSON.stringify({savedHTML:tb.innerHTML})});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  setSyncStatus('雲端儲存成功','#27ae60');
+ }catch(e){setSyncStatus('儲存失敗','#e74c3c')}
+}
+function enableEditing(){
+ app.classList.add('is-editing');
+ tb.querySelectorAll('.col-txt').forEach(el=>{
+  el.contentEditable='true';
+  el.onblur=function(){if(this.innerText.trim()==='')this.innerHTML='';saveData()}
+ });
+ tb.querySelectorAll('.wm-portrait-box').forEach(box=>{
+  box.onclick=function(){
+   const n=prompt('輸入新肖像網址：');
+   if(n){const img=document.createElement('img');img.src=n;img.className='wm-portrait-img';this.replaceChildren(img);saveData()}
+  }
+ });
+ setSyncStatus('編輯模式','#4b0082');
+}
+document.getElementById('edit-trigger').onclick=()=>{if(prompt('管理員驗證：')==='admin')enableEditing();else alert('驗證失敗。')};
+window.addEventListener('load',loadData);
+</script>
+</body>
+</html>
