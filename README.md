@@ -7,10 +7,14 @@
 - `privy.html`：司憲院制司受憲秘閣院職官表
 - `privy-data.js`：內建初始資料
 
-## 雲端同步
+## 資料儲存
 
-頁面保留原本 JSONBin 的 Bin ID 與 `savedHTML` 資料格式，因此原有雲端資料可直接讀取，不需要重新建立資料。
+- `data.json` 是唯一資料來源，直接存放在 Git repository。
+- 網頁從 GitHub Pages 的 `data.json` 讀取資料。
+- 不再使用 JSONBin，也不再依賴任何外部資料庫。
+- Git commit 本身就是資料版本紀錄。
 
-編輯流程仍為：右上角 ⚙️ → 管理員驗證 → 編輯 → 失焦自動寫回雲端。
+## 編輯
 
-> 注意：原始頁面把 JSONBin Master Key 直接放在前端 JavaScript。此方式可延續舊頁面的無縫相容性，但 Master Key 對瀏覽器使用者並非真正保密。若之後要公開長期使用，建議改成後端 API / Serverless Function，由伺服器保存密鑰。
+右上角 ⚙️ 驗證後會開啟 GitHub 的 `data.json` 編輯頁。修改並 Commit 後，GitHub Pages 重新部署，網站就會讀到最新資料。
+
