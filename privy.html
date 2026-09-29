@@ -55,6 +55,7 @@ h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}
 </main>
 
 <script>
+const app=document.getElementById('privy-app');
 const tb=document.getElementById('table-body');
 const syncStatus=document.getElementById('sync-status');
 
@@ -108,7 +109,7 @@ function enableEditing(){
    }
   };
  });
- setSyncStatus('編輯模式','loading');
+ setSyncStatus('正常連線','online');
 }
 
 document.getElementById('edit-trigger').onclick=()=>{
