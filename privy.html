@@ -167,6 +167,26 @@ document.getElementById('edit-trigger').onclick=()=>{
  else alert('驗證失敗。');
 };
 
+function reportFrameHeight(){
+ try{
+  const h=Math.max(
+   document.body.scrollHeight,
+   document.documentElement.scrollHeight,
+   document.body.offsetHeight,
+   document.documentElement.offsetHeight
+  );
+  window.parent.postMessage({type:'wme-list-height',height:h},'*');
+ }catch(e){}
+}
+
+const frameResizeObserver=new ResizeObserver(reportFrameHeight);
+frameResizeObserver.observe(document.documentElement);
+window.addEventListener('resize',reportFrameHeight);
+window.addEventListener('load',()=>{
+ reportFrameHeight();
+ setTimeout(reportFrameHeight,100);
+ setTimeout(reportFrameHeight,500);
+});
 window.addEventListener('load',loadData);
 </script>
 </body>
