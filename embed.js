@@ -1,79 +1,19 @@
 (function(){
-  var ROOT_ID='wme-list-embed';
-  var LOCAL_KEY='wme-list-privy-edit-html';
-  var PAGE_URL='https://annynn1990.github.io/wme-list/privy.html';
-  var DATA_URL='https://annynn1990.github.io/wme-list/data.json?ts='+Date.now();
-  var root=document.getElementById(ROOT_ID);
-  if(!root)return;
-
-  function addStyle(doc){
-    var old=root.querySelector('style[data-wme-style]');
-    if(old)old.remove();
-    var style=document.createElement('style');
-    style.setAttribute('data-wme-style','1');
-    style.textContent=doc.querySelector('style')?doc.querySelector('style').textContent:'';
-    document.head.appendChild(style);
-  }
-
-  function status(app,msg,state){
-    var s=app.querySelector('#sync-status');
-    if(s){s.textContent=msg;s.className=state;}
-  }
-
-  function saveLocal(tb,app){
-    try{localStorage.setItem(LOCAL_KEY,tb.innerHTML);status(app,'正常連線','online');}catch(e){}
-  }
-
-  function restoreLocal(tb){
-    try{var x=localStorage.getItem(LOCAL_KEY);if(x){tb.innerHTML=x;return true;}}catch(e){}
-    return false;
-  }
-
-  function bindEditing(app,tb){
-    app.classList.add('is-editing');
-    tb.querySelectorAll('.name-field').forEach(function(el){
-      if(!el.textContent.trim())el.textContent='懸缺';
-    });
-    app.querySelectorAll('.header h1,.header .subtitle,.wm-privy-table th,.wm-privy-table td.col-txt,.wm-privy-table .wm-p-rank,.wm-privy-table td:not(.col-txt) small,.sync > span:first-child').forEach(function(el){
-      el.contentEditable='true';
-      el.spellcheck=false;
-      el.oninput=function(){saveLocal(tb,app);};
-      el.onblur=function(){saveLocal(tb,app);};
-    });
-    app.querySelectorAll('.wm-portrait-box').forEach(function(box){
-      box.onclick=function(){
-        var url=prompt('輸入新肖像網址：');
-        if(url){var img=document.createElement('img');img.src=url;img.className='wm-portrait-img';box.replaceChildren(img);saveLocal(tb,app);}
-      };
-    });
-    status(app,'正常連線','online');
-  }
-
-  fetch(PAGE_URL,{cache:'no-store'})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
-    .then(function(html){
-      var doc=new DOMParser().parseFromString(html,'text/html');
-      addStyle(doc);
-      var main=doc.querySelector('main');
-      if(!main)throw new Error('main not found');
-      root.innerHTML='';
-      root.appendChild(main.cloneNode(true));
-      var app=root.querySelector('#privy-app')||root.firstElementChild;
-      var tb=root.querySelector('#table-body');
-      var edit=root.querySelector('#edit-trigger');
-      status(app,'讀取資料中','loading');
-
-      var restored=restoreLocal(tb);
-      var loadData=restored?Promise.resolve():fetch(DATA_URL,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(d){if(!d.savedHTML)throw new Error('資料格式錯誤');tb.innerHTML=d.savedHTML;});
-      return loadData.then(function(){
-        if(edit)edit.onclick=function(){
-          if(prompt('管理員驗證：')==='1111')bindEditing(app,tb);
-          else alert('驗證失敗。');
-        };
-        status(app,'正常連線','online');
-      });
-    })
-    .catch(function(){
-      root.innerHTML='<div style="padding:20px;color:#e74c3c;background:#fff;border:1px solid #a2a9b1">官職表讀取失敗</div>';
-    });
+var ROOT_ID='wme-list-embed', LOCAL_KEY='wme-list-privy-edit-html';
+var root=document.getElementById(ROOT_ID);
+if(!root)return;
+var INITIAL_HTML="<tr><th colspan=\"5\" class=\"wm-privy-banner\">院領導核心 (The High Council)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/02_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>大司憲</b></td>\n<td><span class=\"wm-p-rank wm-p-rank-high\">Rank 1</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">李迎希</td>\n<td class=\"col-txt\">首席秘書官；兼任選舉委員會主席</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/01/90_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>二司憲</b></td>\n<td><span class=\"wm-p-rank\">Rank 2</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">白敖</td>\n<td class=\"col-txt\">副秘書長</td>\n</tr>\n<tr><th colspan=\"5\" class=\"wm-privy-banner\">下設處室與司局 (Departments & Bureaus)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">制司處處長<br><small>（司制）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管詔書制作</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/03/33_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">受憲處處長<br><small>（司典）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">夏侯昜</td>\n<td class=\"col-txt\">掌管典章憲制</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/89_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">檔案處處長<br><small>（司吏）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">小羽</td>\n<td class=\"col-txt\">掌管皇家檔案與吏事</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/28_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">司政處處長<br><small>（司政）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">仲尼</td>\n<td class=\"col-txt\">掌管行政文書</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/11_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">律令司<br><small>（司律）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">路德維希</td>\n<td class=\"col-txt\">掌管皇室律令</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">宗正司</td>\n<td><span class=\"wm-p-rank\">Rank 5</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管宗室事務</td>\n</tr>";
+var style=document.createElement('style');
+style.textContent="#wme-list-embed{width:100%;margin:0;padding:0;background:#f5f5f5;color:#202122;font-family:\"Noto Serif TC\",\"PingFang TC\",\"Microsoft JhengHei\",serif}\n#wme-list-embed *{box-sizing:border-box}\n#wme-list-embed .wm-privy-wrapper{max-width:1000px;margin:0 auto;padding:25px;background:#fff;border:1px solid #a2a9b1;box-shadow:0 4px 12px rgba(0,0,0,.15);line-height:1.6;position:relative}\n#wme-list-embed #edit-trigger{position:absolute;top:25px;right:25px;cursor:pointer;font-size:18px;color:#eee;transition:color .3s;z-index:10}\n#wme-list-embed #edit-trigger:hover{color:#4b0082}\n#wme-list-embed .header{border-bottom:3px solid #4b0082;margin-bottom:20px;padding-bottom:10px;padding-right:35px}\n#wme-list-embed h1{margin:0;color:#000;font-size:30px;letter-spacing:2px}\n#wme-list-embed .subtitle{font-size:14px;color:#54595d;font-style:italic;margin-top:5px}\n#wme-list-embed .wm-privy-table{width:100%;border-collapse:collapse;margin-bottom:30px;border:1px solid #a2a9b1;table-layout:fixed}\n#wme-list-embed .wm-privy-table th{background:#f8f9fa;border:1px solid #a2a9b1;padding:12px 8px;text-align:center;font-weight:bold}\n#wme-list-embed .wm-privy-table td{border:1px solid #a2a9b1;padding:10px 8px;vertical-align:middle}\n#wme-list-embed .wm-privy-banner{background:#4b0082!important;color:#fff!important;font-size:16px;text-align:left!important;padding-left:15px!important;letter-spacing:1px}\n#wme-list-embed .wm-p-rank-high{display:inline-block;padding:2px 10px;background:#4b0082!important;color:#f1c40f!important;border:1px solid #d4af37!important;border-radius:4px;font-size:12px;font-weight:bold}\n#wme-list-embed .wm-p-rank{display:inline-block;padding:2px 10px;background:#fcf3cf;color:#9a7d0a;border-radius:4px;font-size:12px;font-weight:bold;border:1px solid #d4af37}\n#wme-list-embed .wm-portrait-box{width:80px;height:100px;background:#faf9f6;border:1px solid #d4af37;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px;position:relative}\n#wme-list-embed .wm-portrait-box.editable{cursor:pointer}\n#wme-list-embed .wm-portrait-img{width:100%;height:100%;object-fit:cover}\n#wme-list-embed .name-field{color:#202122!important;font-family:inherit!important;font-size:16px!important;font-weight:normal!important;text-align:center}\n#wme-list-embed .name-field:empty::before{content:\"懸缺\";color:#bdc3c7;font-style:italic;font-weight:normal}\n#wme-list-embed .is-editing [contenteditable=true]{outline:2px dashed #4b0082!important;background:#f7f9ff!important;cursor:text}\n#wme-list-embed .sync{font-size:12px;color:#7f8c8d;font-style:italic;border-left:3px solid #d4af37;padding-left:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}\n#wme-list-embed #sync-status{display:inline-flex;align-items:center;gap:7px;font-style:normal;font-weight:600;white-space:nowrap}\n#wme-list-embed #sync-status:before{content:\"\";width:9px;height:9px;border-radius:50%;background:currentColor}\n#wme-list-embed #sync-status.online{color:#27ae60!important}\n#wme-list-embed #sync-status.online:before{animation:wme-status-breathe 1.8s ease-in-out infinite;box-shadow:0 0 5px currentColor}\n#wme-list-embed #sync-status.loading{color:#f1c40f!important}\n#wme-list-embed #sync-status.error{color:#e74c3c!important}\n@keyframes wme-status-breathe{0%,100%{opacity:.6;box-shadow:0 0 4px currentColor,0 0 8px rgba(39,174,96,.25)}50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.55)}}\n@media(max-width:700px){#wme-list-embed .wm-privy-wrapper{padding:15px}#wme-list-embed h1{font-size:23px}#wme-list-embed .wm-privy-table{font-size:14px;min-width:760px}#wme-list-embed .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}#wme-list-embed .wm-portrait-box{width:64px;height:80px}#wme-list-embed .sync{align-items:flex-start;flex-direction:column}}";
+document.head.appendChild(style);
+root.innerHTML="<main class=\"wm-privy-wrapper\" id=\"privy-app\"><div id=\"edit-trigger\" title=\"管理員編輯\">⚙️</div><div class=\"header\"><h1>司憲院制司受憲秘閣院職官表</h1><div class=\"subtitle\">Privy Council — List of Imperial Secretarial Officials</div></div><div class=\"table-scroll\"><table class=\"wm-privy-table\"><thead><tr><th style=\"width:100px\">肖像</th><th style=\"width:200px\">職銜 (Official Title)</th><th style=\"width:100px\">職等 / 定員</th><th style=\"width:160px\">官員名稱</th><th>職掌備註 (Notes)</th></tr></thead><tbody id=\"table-body\"></tbody></table></div><div class=\"sync\"><span>註：司憲院為皇家直屬秘書機關，直接向皇帝負責，獨立於內閣行政體系。</span><span id=\"sync-status\" class=\"loading\">讀取資料中</span></div></main>";
+var app=root.querySelector('#privy-app'),tb=root.querySelector('#table-body'),sync=root.querySelector('#sync-status'),edit=root.querySelector('#edit-trigger');
+function status(m,c){sync.textContent=m;sync.className=c;}
+function save(){try{localStorage.setItem(LOCAL_KEY,tb.innerHTML);status('正常連線','online');}catch(e){}}
+function restore(){try{var x=localStorage.getItem(LOCAL_KEY);if(x){tb.innerHTML=x;return true;}}catch(e){}return false;}
+function enable(){app.classList.add('is-editing');tb.querySelectorAll('.name-field').forEach(function(e){if(!e.textContent.trim())e.textContent='懸缺';});app.querySelectorAll('.header h1,.header .subtitle,.wm-privy-table th,.wm-privy-table td.col-txt,.wm-privy-table .wm-p-rank,.wm-privy-table td:not(.col-txt) small,.sync > span:first-child').forEach(function(e){e.contentEditable='true';e.spellcheck=false;e.oninput=save;e.onblur=save;});tb.querySelectorAll('.wm-portrait-box').forEach(function(b){b.classList.add('editable');b.onclick=function(){var u=prompt('輸入新肖像網址：');if(u){var i=document.createElement('img');i.src=u;i.className='wm-portrait-img';b.replaceChildren(i);save();}};});status('正常連線','online');}
+edit.onclick=function(){if(prompt('管理員驗證：')==='1111')enable();else alert('驗證失敗。');};
+tb.innerHTML=INITIAL_HTML;
+restore();
+status('正常連線','online');
 })();
