@@ -7,35 +7,48 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:#fff;color:#222;font-family:Arial,"Microsoft JhengHei",sans-serif;font-size:14px}
-.wrap{max-width:980px;margin:10px auto;padding:0 8px}
-.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding:3px 0 6px}
-.title{font-size:18px;font-weight:700}
-.lock{border:0;background:#d60000;color:#fff;width:32px;height:30px;border-radius:4px;font-size:17px;cursor:pointer;line-height:30px;padding:0}
+body{background:#fff;color:#222;font-family:Arial,"Microsoft JhengHei",sans-serif;font-size:13px}
+.wrap{max-width:1100px;margin:8px auto;padding:0 6px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding:2px 0 5px}
+.title{font-size:17px;font-weight:700}
+.lock{border:0;background:#d60000;color:#fff;width:31px;height:29px;border-radius:3px;font-size:16px;cursor:pointer;padding:0}
 .lock:hover{background:#b00000}
-.tools{display:flex;gap:4px;margin:5px 0;flex-wrap:wrap}
+.tools{display:flex;gap:4px;margin:4px 0}
 button.tool{border:1px solid #999;background:#f5f5f5;color:#222;padding:3px 7px;border-radius:3px;font:inherit;cursor:pointer}
-button.tool:hover{background:#e9e9e9}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{border:1px solid #999;padding:4px 6px;line-height:1.25;vertical-align:middle}
+th,td{border:1px solid #999;padding:3px 5px;line-height:1.2;vertical-align:middle}
 th{font-weight:700;background:#eee;text-align:center}
-th:nth-child(1){width:24%}
-th:nth-child(2){width:34%}
-th:nth-child(3){width:20%}
-th:nth-child(4){width:22%}
+th:nth-child(1){width:18%}
+th:nth-child(2){width:25%}
+th:nth-child(3){width:16%}
+th:nth-child(4){width:13%}
+th.status-head{width:7%;font-size:11px}
 .name{font-weight:700}
-.year{white-space:nowrap;text-align:center}
+.year{text-align:center;white-space:nowrap}
 .editing td{background:#fffef2}
-input{width:100%;border:1px solid #aaa;padding:3px 4px;font:inherit;border-radius:2px;background:#fff}
-input:focus{outline:1px solid #555}
-.small{font-size:11px;color:#666;margin-top:2px}
-.del{border:1px solid #b40000;background:#fff;color:#b40000;padding:2px 5px;border-radius:2px;cursor:pointer;font:inherit;margin-top:3px}
-.del:hover{background:#ffe8e8}
-.empty{text-align:center;color:#777;padding:18px}
-.status{font-size:12px;color:#666;margin-top:5px;min-height:16px}
-.status.ok{color:#18733a}
-.status.err{color:#a00000}
+input.text,input[type=number]{width:100%;border:1px solid #aaa;padding:3px 4px;font:inherit;border-radius:2px;background:#fff}
+input.text:focus,input[type=number]:focus{outline:1px solid #555}
+.small{font-size:10px;color:#666;margin-top:2px}
+.status-cell{text-align:center;padding:2px!important}
+.status-box{
+  width:19px;height:19px;margin:auto;display:block;accent-color:#222;
+  cursor:default;
+}
+.status-box.editable{cursor:pointer}
+.status-box.auto{cursor:not-allowed}
+.del{border:1px solid #b40000;background:#fff;color:#b40000;padding:2px 4px;border-radius:2px;cursor:pointer;font:inherit;margin-top:3px}
+.empty{text-align:center;color:#777;padding:16px}
+.status{font-size:11px;color:#666;margin-top:4px;min-height:14px}
+.status.ok{color:#18733a}.status.err{color:#a00000}
 .hidden{display:none!important}
+.legend{font-size:10px;color:#666;margin:4px 0 0 1px}
+@media(max-width:780px){
+  th:nth-child(2){width:24%}th:nth-child(3){width:14%}th:nth-child(4){width:12%}
+  th.status-head{width:8%}
+  .wrap{padding:0 3px}
+  table{min-width:820px}
+  .wrap{overflow-x:auto}
+}
 </style>
 </head>
 <body>
@@ -58,13 +71,18 @@ input:focus{outline:1px solid #555}
         <th>住宅地址</th>
         <th>戶籍登記人</th>
         <th>持戶年度</th>
+        <th class="status-head">年度租金</th>
+        <th class="status-head">未繳租金</th>
+        <th class="status-head">住戶查封</th>
+        <th class="status-head">國有收回</th>
       </tr>
     </thead>
     <tbody id="rows">
-      <tr><td colspan="4" class="empty">正在讀取……</td></tr>
+      <tr><td colspan="8" class="empty">正在讀取……</td></tr>
     </tbody>
   </table>
 
+  <div class="legend">年度租金為唯一人工勾選項；其餘三項依未繳年度自動遞進。</div>
   <div id="status" class="status"></div>
 </div>
 
@@ -82,7 +100,7 @@ input:focus{outline:1px solid #555}
   const save=document.getElementById("save");
   const cancel=document.getElementById("cancel");
 
-  let data={version:1,updatedAt:"",households:[]};
+  let data={version:2,updatedAt:"",households:[]};
   let backup=null;
   let editing=false;
 
@@ -97,40 +115,83 @@ input:focus{outline:1px solid #555}
     });
   }
 
-  function yearText(v){
+  function holdingText(v){
     const y=parseInt(v,10);
     if(!Number.isFinite(y)) return v?String(v):"";
     return y+"（"+Math.max(0,YEAR_NOW-y)+"年）";
   }
 
+  function normalizeHousehold(h){
+    if(!h.rentPaidYear && h.rentPaidYear !== 0) h.rentPaidYear="";
+    if(!h.rentMissedSince && h.rentMissedSince !== 0){
+      h.rentMissedSince = h.rentPaidYear !== "" ? Number(h.rentPaidYear)+1 : YEAR_NOW;
+    }
+    if(h.rentPaidYear === YEAR_NOW) h.rentMissedSince="";
+    return h;
+  }
+
+  function statusState(h){
+    normalizeHousehold(h);
+    const paidYear=parseInt(h.rentPaidYear,10);
+    const missedSince=parseInt(h.rentMissedSince,10);
+
+    const annual=(Number.isFinite(paidYear) && paidYear===YEAR_NOW);
+    let overdue=0;
+    if(Number.isFinite(missedSince)){
+      overdue=Math.max(0,YEAR_NOW-missedSince);
+    }
+
+    return {
+      annual,
+      unpaid: overdue>=1,
+      sealed: overdue>=2,
+      reclaimed: overdue>=3
+    };
+  }
+
+  function box(checked, editable, i){
+    return '<input type="checkbox" class="status-box '+(editable?"editable":"auto")+'" '+(checked?"checked":"")+
+      (editable?' data-rent="'+i+'"':' disabled')+' aria-label="狀態">';
+  }
+
   function render(){
     if(!data.households.length){
-      rows.innerHTML='<tr><td colspan="4" class="empty">目前沒有登錄住戶。</td></tr>';
+      rows.innerHTML='<tr><td colspan="8" class="empty">目前沒有登錄住戶。</td></tr>';
       return;
     }
 
     if(!editing){
       rows.innerHTML=data.households.map(function(h){
+        const s=statusState(h);
         return '<tr>'+
           '<td class="name">'+esc(h.name||"")+'</td>'+
           '<td>'+esc(h.address||"")+'</td>'+
           '<td>'+esc(h.registrant||"")+'</td>'+
-          '<td class="year">'+esc(yearText(h.year))+'</td>'+
+          '<td class="year">'+esc(holdingText(h.year))+'</td>'+
+          '<td class="status-cell">'+box(s.annual,false)+'</td>'+
+          '<td class="status-cell">'+box(s.unpaid,false)+'</td>'+
+          '<td class="status-cell">'+box(s.sealed,false)+'</td>'+
+          '<td class="status-cell">'+box(s.reclaimed,false)+'</td>'+
           '</tr>';
       }).join("");
       return;
     }
 
     rows.innerHTML=data.households.map(function(h,i){
+      const s=statusState(h);
       return '<tr class="editing">'+
-        '<td><input data-i="'+i+'" data-k="name" value="'+esc(h.name||"")+'"></td>'+
-        '<td><input data-i="'+i+'" data-k="address" value="'+esc(h.address||"")+'"></td>'+
-        '<td><input data-i="'+i+'" data-k="registrant" value="'+esc(h.registrant||"")+'"></td>'+
+        '<td><input class="text" data-i="'+i+'" data-k="name" value="'+esc(h.name||"")+'"></td>'+
+        '<td><input class="text" data-i="'+i+'" data-k="address" value="'+esc(h.address||"")+'"></td>'+
+        '<td><input class="text" data-i="'+i+'" data-k="registrant" value="'+esc(h.registrant||"")+'"></td>'+
         '<td class="year">'+
           '<input type="number" min="0" step="1" data-i="'+i+'" data-k="year" value="'+esc(h.year||"")+'">'+
-          '<div class="small">目前 '+YEAR_NOW+' 年：'+esc(yearText(h.year))+'</div>'+
+          '<div class="small">目前 '+YEAR_NOW+' 年：'+esc(holdingText(h.year))+'</div>'+
           '<button type="button" class="del" data-del="'+i+'">刪除</button>'+
         '</td>'+
+        '<td class="status-cell">'+box(s.annual,true,i)+'</td>'+
+        '<td class="status-cell">'+box(s.unpaid,false)+'</td>'+
+        '<td class="status-cell">'+box(s.sealed,false)+'</td>'+
+        '<td class="status-cell">'+box(s.reclaimed,false)+'</td>'+
         '</tr>';
     }).join("");
   }
@@ -142,8 +203,25 @@ input:focus{outline:1px solid #555}
     data.households[i][el.dataset.k]=el.value;
     if(el.dataset.k==="year"){
       const note=el.parentElement.querySelector(".small");
-      if(note)note.textContent="目前 "+YEAR_NOW+" 年："+yearText(el.value);
+      if(note)note.textContent="目前 "+YEAR_NOW+" 年："+holdingText(el.value);
     }
+  });
+
+  rows.addEventListener("change",function(e){
+    const rent=e.target.closest("[data-rent]");
+    if(!rent || !editing)return;
+
+    const i=Number(rent.dataset.rent);
+    const h=data.households[i];
+
+    if(rent.checked){
+      h.rentPaidYear=YEAR_NOW;
+      h.rentMissedSince="";
+    }else{
+      h.rentPaidYear=YEAR_NOW-1;
+      h.rentMissedSince=YEAR_NOW;
+    }
+    render();
   });
 
   rows.addEventListener("click",function(e){
@@ -193,10 +271,18 @@ input:focus{outline:1px solid #555}
   };
 
   add.onclick=function(){
-    data.households.push({id:Date.now(),name:"",address:"",registrant:"",year:""});
+    data.households.push({
+      id:Date.now(),
+      name:"",
+      address:"",
+      registrant:"",
+      year:"",
+      rentPaidYear: YEAR_NOW-1,
+      rentMissedSince: YEAR_NOW
+    });
     render();
-    const inputs=rows.querySelectorAll("input");
-    if(inputs.length)inputs[inputs.length-4].focus();
+    const inputs=rows.querySelectorAll("input.text,input[type=number]");
+    if(inputs.length)inputs[0].focus();
   };
 
   save.onclick=async function(){
@@ -229,11 +315,12 @@ input:focus{outline:1px solid #555}
       const r=await fetch(API,{cache:"no-store"});
       if(!r.ok)throw new Error("HTTP "+r.status);
       const out=await r.json();
-      data=out&&Array.isArray(out.households)?out:{version:1,households:[]};
+      data=out&&Array.isArray(out.households)?out:{version:2,households:[]};
+      data.households.forEach(normalizeHousehold);
       render();
       statusText("共 "+data.households.length+" 戶");
     }catch(e){
-      rows.innerHTML='<tr><td colspan="4" class="empty">讀取失敗：'+esc(e.message)+'</td></tr>';
+      rows.innerHTML='<tr><td colspan="8" class="empty">讀取失敗：'+esc(e.message)+'</td></tr>';
       statusText(e.message,"err");
     }
   }
