@@ -228,7 +228,7 @@ tr.drag-over td{border-top:2px solid #555}
     }
 
     if(!editing){
-      rows.innerHTML=data.households.map(function(h){
+      rows.innerHTML=data.households.map(function(h,i){
         const s=statusState(h);
         return '<tr>'+
           '<td class="name">'+esc(h.name||"")+'</td>'+
