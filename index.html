@@ -4,168 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>國民大街住戶列表｜黃名帝國</title>
-<meta name="description" content="黃名帝國國民大街住戶列表">
 <style>
-:root{
-  --purple:#4b0082;
-  --purple-2:#6a1b9a;
-  --gold:#d4af37;
-  --ink:#242124;
-  --muted:#6b6770;
-  --line:#ddd7e2;
-  --paper:#fff;
-  --bg:#f5f3f7;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
-  background:linear-gradient(180deg,#f7f4fa 0,#f2eff4 100%);
-  color:var(--ink);
-  font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
-}
-.container{max-width:1050px;margin:28px auto;padding:0 16px}
-.card{
-  background:var(--paper);
-  border:1px solid var(--line);
-  border-top:5px solid var(--purple);
-  border-radius:14px;
-  box-shadow:0 8px 28px rgba(48,28,65,.09);
-  overflow:hidden;
-}
-.header{padding:26px 28px 20px;border-bottom:1px solid var(--line)}
-.header-top{display:flex;gap:18px;align-items:flex-start;justify-content:space-between}
-h1{margin:0;color:#24132d;font-size:30px;letter-spacing:2px}
-.subtitle{margin-top:7px;color:var(--muted);font-size:14px}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap}
-button,.edit-link{
-  appearance:none;border:1px solid var(--purple);background:var(--purple);color:#fff;
-  border-radius:9px;padding:9px 14px;font:inherit;cursor:pointer;text-decoration:none;
-}
-button.secondary,.edit-link.secondary{background:#fff;color:var(--purple)}
-button:hover,.edit-link:hover{filter:brightness(1.07)}
-.notice{
-  margin:0 28px;padding:12px 14px;background:#faf7fd;border-left:4px solid var(--gold);
-  color:#514756;font-size:13px;line-height:1.65;
-}
-.table-wrap{overflow:auto;padding:22px 28px 8px}
-table{width:100%;border-collapse:collapse;min-width:700px}
-th,td{border:1px solid var(--line);padding:12px 14px}
-th{background:#f6f2fa;color:#351044;text-align:left;font-weight:700}
-tbody tr:nth-child(even){background:#fcfbfd}
-.empty{text-align:center;padding:46px 20px;color:var(--muted)}
-.count{font-size:13px;color:var(--muted);margin:0 28px 20px}
-.footer{padding:14px 28px 24px;font-size:12px;color:var(--muted)}
-.badge{
-  display:inline-block;padding:3px 9px;border-radius:999px;background:#f6f0da;color:#7a6200;
-  border:1px solid #dbc870;font-size:12px;margin-left:8px;
-}
-dialog{
-  width:min(720px,calc(100% - 24px));border:0;border-radius:14px;padding:0;
-  box-shadow:0 24px 80px rgba(0,0,0,.25);
-}
-dialog::backdrop{background:rgba(22,13,29,.46)}
-.dialog-inner{padding:24px}
-.dialog-inner h2{margin:0 0 10px;color:#351044}
-.dialog-inner p{color:var(--muted);line-height:1.7}
-.code{
-  background:#19151c;color:#f5eafa;border-radius:10px;padding:14px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;
-}
-.close-row{display:flex;justify-content:flex-end;margin-top:16px}
-@media(max-width:700px){
-  .container{margin:12px auto;padding:0 10px}
-  .header{padding:20px 18px}
-  .header-top{flex-direction:column}
-  h1{font-size:24px}
-  .notice,.table-wrap,.count{margin-left:18px;margin-right:18px}
-}
+:root{--purple:#4b0082;--gold:#d4af37;--ink:#29242d;--muted:#6f6875;--line:#ddd7e2}
+*{box-sizing:border-box}html,body{margin:0}body{background:#f5f3f7;color:var(--ink);font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif}
+.wrap{max-width:1050px;margin:28px auto;padding:0 15px}.card{background:#fff;border:1px solid var(--line);border-top:5px solid var(--purple);border-radius:14px;box-shadow:0 8px 28px #301c4117;overflow:hidden}
+header{padding:25px 28px 18px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:29px;letter-spacing:2px}.sub{margin-top:6px;color:var(--muted);font-size:14px}
+.bar{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}button{border:1px solid var(--purple);background:var(--purple);color:#fff;border-radius:9px;padding:9px 14px;font:inherit;cursor:pointer}button.alt{background:#fff;color:var(--purple)}button.danger{border-color:#a32d2d;background:#fff;color:#a32d2d}
+.notice{margin:18px 28px 0;padding:11px 14px;background:#faf7fd;border-left:4px solid var(--gold);font-size:13px;line-height:1.7}
+.table-wrap{overflow:auto;padding:22px 28px 8px}table{width:100%;border-collapse:collapse;min-width:680px}th,td{border:1px solid var(--line);padding:11px 13px;text-align:left}th{background:#f6f2fa;color:#351044}
+input{width:100%;border:1px solid #cfc8d5;border-radius:7px;padding:9px 10px;font:inherit;background:#fff}input:focus{outline:2px solid #d8c4e7;border-color:var(--purple)}
+.actions{white-space:nowrap;width:120px}.empty{text-align:center;color:var(--muted);padding:40px}.status{margin:0 28px 22px;color:var(--muted);font-size:13px}.status.ok{color:#25804b}.status.err{color:#b12c2c}.editing{background:#fffdf5}
+@media(max-width:700px){.wrap{margin:10px auto}.card{border-radius:10px}header{padding:20px}.notice,.table-wrap,.status{margin-left:20px;margin-right:20px}}
 </style>
 </head>
 <body>
-<div class="container">
-  <main class="card">
-    <header class="header">
-      <div class="header-top">
-        <div>
-          <h1>國民大街住戶列表</h1>
-          <div class="subtitle">Wongming Empire · National Avenue Residents Directory</div>
-        </div>
-        <div class="toolbar">
-          <a class="edit-link" href="https://github.com/annynn1990/wme-list/edit/main/data.json" target="_blank" rel="noopener">✎ 編輯資料</a>
-          <button class="secondary" id="helpBtn" type="button">如何儲存</button>
-        </div>
-      </div>
-    </header>
-    <div class="notice">
-      本頁資料直接取自 GitHub 上的 <strong>data.json</strong>，不是瀏覽器本機儲存。完成修改並在 GitHub 按下 Commit 後，所有訪客都會讀到新的住戶資料。
-    </div>
-    <div class="table-wrap">
-      <table aria-label="國民大街住戶列表">
-        <thead>
-          <tr><th style="width:34%">住宅名稱</th><th>住宅地址</th></tr>
-        </thead>
-        <tbody id="rows">
-          <tr><td colspan="2" class="empty">正在讀取住戶資料……</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="count" id="count"></p>
-    <footer class="footer">資料來源：wme-list GitHub repository · 雲端資料檔：<code>data.json</code></footer>
-  </main>
+<div class="wrap"><main class="card">
+<header>
+<h1>國民大街住戶列表</h1>
+<div class="sub">Wongming Empire · National Avenue Residents Directory</div>
+<div class="bar">
+<button id="edit">✎ 編輯住戶</button>
+<button id="add" class="alt" hidden>＋ 新增住宅</button>
+<button id="save" hidden>☁ 儲存到雲端</button>
+<button id="cancel" class="alt" hidden>取消</button>
 </div>
-
-<dialog id="helpDialog">
-  <div class="dialog-inner">
-    <h2>如何修改並雲端儲存</h2>
-    <p>按右上角「編輯資料」後，GitHub 會開啟 <code>data.json</code> 的編輯頁。直接修改住宅名稱與住宅地址，最後按 GitHub 的 Commit changes。Commit 完成後，網站會自動讀取最新版資料。</p>
-    <div class="code">{
-  "version": 1,
-  "updatedAt": "2026-10-08T13:00:00+08:00",
-  "households": [
-    {
-      "id": 1,
-      "name": "住宅名稱",
-      "address": "住宅地址"
-    }
-  ]
-}</div>
-    <div class="close-row"><button id="closeHelp" type="button">關閉</button></div>
-  </div>
-</dialog>
-
+</header>
+<div class="notice">住戶資料由雲端資料庫保存。進入編輯模式後，可直接修改<strong>住宅名稱</strong>與<strong>住宅地址</strong>，也可以新增或刪除住宅。</div>
+<div class="table-wrap"><table>
+<thead><tr><th style="width:32%">住宅名稱</th><th>住宅地址</th><th class="actions" id="actionHead" hidden>操作</th></tr></thead>
+<tbody id="rows"><tr><td colspan="3" class="empty">正在讀取資料……</td></tr></tbody>
+</table></div>
+<div id="status" class="status">正在連線雲端資料……</div>
+</main></div>
 <script>
-(async function(){
-  const rows=document.getElementById('rows');
-  const count=document.getElementById('count');
-  const help=document.getElementById('helpDialog');
-  const url='./data.json?ts='+Date.now();
+(function(){
+const rows=document.getElementById("rows"),status=document.getElementById("status");
+const edit=document.getElementById("edit"),add=document.getElementById("add"),save=document.getElementById("save"),cancel=document.getElementById("cancel"),actionHead=document.getElementById("actionHead");
+let data={version:1,households:[]},original=null,editing=false;
 
-  document.getElementById('helpBtn').onclick=()=>help.showModal();
-  document.getElementById('closeHelp').onclick=()=>help.close();
-
-  function esc(v){
-    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  try{
-    const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const list=Array.isArray(data.households)?data.households:[];
-    if(!list.length){
-      rows.innerHTML='<tr><td colspan="2" class="empty">目前尚未登錄住戶。</td></tr>';
-      count.textContent='共 0 戶';
-      return;
-    }
-    rows.innerHTML=list.map((h,i)=>{
-      const name=(h.name||'').trim() || '未命名住宅';
-      const address=(h.address||'').trim() || '尚未登錄地址';
-      return '<tr><td><strong>'+esc(name)+'</strong></td><td>'+esc(address)+'</td></tr>';
-    }).join('');
-    count.textContent='共 '+list.length+' 戶';
-  }catch(err){
-    rows.innerHTML='<tr><td colspan="2" class="empty">住戶資料讀取失敗：'+esc(err.message)+'</td></tr>';
-    count.textContent='';
-  }
+function setStatus(t,c=""){status.textContent=t;status.className="status "+c}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function render(){
+ if(!data.households.length){rows.innerHTML='<tr><td colspan="'+(editing?3:2)+'" class="empty">目前尚未登錄住戶。</td></tr>';return}
+ rows.innerHTML=data.households.map((h,i)=>{
+  if(editing)return '<tr class="editing"><td><input data-i="'+i+'" data-k="name" value="'+esc(h.name)+'"></td><td><input data-i="'+i+'" data-k="address" value="'+esc(h.address)+'"></td><td class="actions"><button class="danger" data-del="'+i+'">刪除</button></td></tr>';
+  return '<tr><td><strong>'+esc(h.name||"未命名住宅")+'</strong></td><td>'+esc(h.address||"尚未登錄地址")+'</td></tr>';
+ }).join("");
+}
+async function load(){
+ setStatus("正在讀取雲端資料……");
+ try{const r=await fetch("/api/households",{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);data=await r.json();if(!Array.isArray(data.households))data.households=[];render();setStatus("雲端資料已載入","ok")}
+ catch(e){setStatus("讀取失敗："+e.message,"err")}
+}
+function startEdit(){original=JSON.parse(JSON.stringify(data));editing=true;edit.hidden=true;add.hidden=false;save.hidden=false;cancel.hidden=false;actionHead.hidden=false;render();setStatus("編輯模式：修改完成後按「儲存到雲端」")}
+function stopEdit(){editing=false;edit.hidden=false;add.hidden=true;save.hidden=true;cancel.hidden=true;actionHead.hidden=true;render()}
+edit.onclick=startEdit;
+cancel.onclick=()=>{data=original||data;stopEdit();setStatus("已取消修改")}
+add.onclick=()=>{data.households.push({id:Date.now(),name:"",address:""});render();rows.lastElementChild?.querySelector("input")?.focus()}
+rows.addEventListener("input",e=>{if(e.target.matches("input[data-i]"))data.households[+e.target.dataset.i][e.target.dataset.k]=e.target.value});
+rows.addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;data.households.splice(+b.dataset.del,1);render()});
+save.onclick=async()=>{
+ save.disabled=true;setStatus("正在儲存到雲端……");
+ try{const r=await fetch("/api/households",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const out=await r.json();if(!r.ok)throw Error(out.error||"儲存失敗");data=out;stopEdit();setStatus("✓ 已成功儲存到雲端","ok")}
+ catch(e){setStatus("儲存失敗："+e.message,"err")}finally{save.disabled=false}
+};
+load();
 })();
 </script>
 </body>
