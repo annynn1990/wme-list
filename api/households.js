@@ -115,7 +115,10 @@ export default async function handler(req, res) {
       registrant: String(item.registrant ?? "").trim(),
       year: String(item.year ?? "").trim(),
       rentPaidYear: String(item.rentPaidYear ?? "").trim(),
-      rentMissedSince: String(item.rentMissedSince ?? "").trim()
+      rentSupplementYear: String(item.rentSupplementYear ?? "").trim(),
+      rentMissedSince: String(item.rentMissedSince ?? "").trim(),
+      rentState: String(item.rentState ?? "").trim(),
+      rentStateYear: String(item.rentStateYear ?? "").trim()
     }));
 
     const migrated = migrateAddresses({
