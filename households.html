@@ -43,6 +43,11 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
 .empty{text-align:center;color:#777;padding:16px}
 .status{font-size:11px;color:#666;margin-top:4px;min-height:14px}
 .status.ok{color:#18733a}.status.err{color:#a00000}
+.drag-handle{display:inline-block;width:16px;margin-right:4px;color:#777;font-size:14px;cursor:grab;user-select:none;vertical-align:middle}
+.drag-handle:active{cursor:grabbing}
+tr.dragging{opacity:.45}
+tr.drag-over td{border-top:2px solid #555}
+
 .hidden{display:none!important}
 .legend{font-size:10px;color:#666;margin:4px 0 0 1px}
 @media(max-width:780px){
@@ -130,6 +135,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   let data={version:2,updatedAt:"",households:[]};
   let backup=null;
   let editing=false;
+  let dragIndex=-1;
 
   function statusText(t,c){
     if(!dbLight)return;
@@ -210,7 +216,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
     rows.innerHTML=data.households.map(function(h,i){
       const s=statusState(h);
       return '<tr class="editing">'+
-        '<td><input class="text" data-i="'+i+'" data-k="name" value="'+esc(h.name||"")+'"></td>'+
+        '<td><span class="drag-handle" draggable="true" data-drag="'+i+'" title="拖曳重新排序">☷</span><input class="text" data-i="'+i+'" data-k="name" value="'+esc(h.name||"")+'"></td>'+
         '<td><input class="text" data-i="'+i+'" data-k="address" value="'+esc(h.address||"")+'"></td>'+
         '<td><input class="text" data-i="'+i+'" data-k="registrant" value="'+esc(h.registrant||"")+'"></td>'+
         '<td class="year">'+
@@ -236,6 +242,67 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
       if(note)note.textContent="目前 "+YEAR_NOW+" 年："+holdingText(el.value);
     }
   });
+
+  rows.addEventListener("dragstart",function(e){
+    const handle=e.target.closest("[data-drag]");
+    if(!editing || !handle)return;
+    dragIndex=Number(handle.dataset.drag);
+    const tr=handle.closest("tr");
+    if(tr){
+      tr.classList.add("dragging");
+      e.dataTransfer.effectAllowed="move";
+      e.dataTransfer.setData("text/plain",String(dragIndex));
+    }
+  });
+
+  rows.addEventListener("dragover",function(e){
+    if(!editing || dragIndex<0)return;
+    const tr=e.target.closest("tr.editing");
+    if(!tr || tr.querySelector("[data-drag]")===null)return;
+    e.preventDefault();
+    rows.querySelectorAll("tr.drag-over").forEach(function(x){x.classList.remove("drag-over");});
+    tr.classList.add("drag-over");
+    e.dataTransfer.dropEffect="move";
+  });
+
+  rows.addEventListener("dragleave",function(e){
+    const tr=e.target.closest("tr.editing");
+    if(tr && !tr.contains(e.relatedTarget))tr.classList.remove("drag-over");
+  });
+
+  rows.addEventListener("drop",function(e){
+    if(!editing || dragIndex<0)return;
+    const target=e.target.closest("tr.editing");
+    if(!target)return;
+    e.preventDefault();
+
+    const targetIndex=Array.prototype.indexOf.call(rows.children,target);
+    if(targetIndex<0 || targetIndex===dragIndex)return resetDrag();
+
+    const rect=target.getBoundingClientRect();
+    const insertAfter=e.clientY > rect.top + rect.height/2;
+    const item=data.households.splice(dragIndex,1)[0];
+
+    let newIndex=targetIndex;
+    if(dragIndex<targetIndex)newIndex--;
+    if(insertAfter)newIndex++;
+    newIndex=Math.max(0,Math.min(data.households.length,newIndex));
+
+    data.households.splice(newIndex,0,item);
+    resetDrag();
+    render();
+  });
+
+  rows.addEventListener("dragend",function(){
+    resetDrag();
+  });
+
+  function resetDrag(){
+    rows.querySelectorAll("tr.dragging,tr.drag-over").forEach(function(tr){
+      tr.classList.remove("dragging","drag-over");
+    });
+    dragIndex=-1;
+  }
 
   rows.addEventListener("change",function(e){
     const rent=e.target.closest("[data-rent]");
