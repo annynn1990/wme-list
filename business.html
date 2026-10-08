@@ -116,6 +116,34 @@ tr.drag-over td{border-top:2px solid #555}
 <script src="./business.js"></script>
 <script>
 (function(){
+  function sendHeight(){
+    try{
+      const h=Math.ceil(Math.max(
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.body ? document.body.scrollHeight : 0,
+        document.body ? document.body.offsetHeight : 0
+      ));
+      window.parent.postMessage({type:"wme-business-height",height:h},"*");
+    }catch(e){}
+  }
+
+  window.addEventListener("load",sendHeight);
+  window.addEventListener("resize",sendHeight);
+
+  if(window.ResizeObserver){
+    const ro=new ResizeObserver(sendHeight);
+    ro.observe(document.documentElement);
+    if(document.body)ro.observe(document.body);
+  }
+
+  setTimeout(sendHeight,100);
+  setTimeout(sendHeight,500);
+  setTimeout(sendHeight,1000);
+})();
+</script>
+<script>
+(function(){
   function fixEmptyText(){
     const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
     let n;
