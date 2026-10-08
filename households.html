@@ -439,6 +439,13 @@ tr.drag-over td{border-top:2px solid #555}
       const out=await r.json();
       data=out&&Array.isArray(out.households)?out:{version:2,households:[]};
       data.households.forEach(normalizeHousehold);
+      data.households.sort(function(a,b){
+        const ay=parseInt(a.year,10);
+        const by=parseInt(b.year,10);
+        const av=Number.isFinite(ay)?ay:-Infinity;
+        const bv=Number.isFinite(by)?by:-Infinity;
+        return bv-av;
+      });
       render();
       statusText("", "ok");
     }catch(e){
