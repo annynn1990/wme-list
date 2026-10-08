@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>商事大街單位列表</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#fff;color:#222;font-family:Arial,"Microsoft JhengHei",sans-serif;font-size:13px}
+.wrap{max-width:1100px;margin:8px auto;padding:0 6px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding:2px 0 5px}
+.title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:7px}
+.db-light{width:9px;height:9px;border-radius:50%;display:inline-block;background:#2ecc71;box-shadow:0 0 5px #2ecc71;animation:db-breathe 1.8s ease-in-out infinite}
+.db-light.offline{background:#e74c3c;box-shadow:0 0 5px #e74c3c;animation:none}
+@keyframes db-breathe{0%,100%{opacity:.55;transform:scale(.9);box-shadow:0 0 4px #2ecc71}50%{opacity:1;transform:scale(1.15);box-shadow:0 0 9px #2ecc71,0 0 16px rgba(46,204,113,.35)}}
+.lock{border:0;background:transparent;color:#888;width:24px;height:24px;border-radius:3px;font-size:13px;cursor:pointer;padding:0;line-height:24px}
+.lock:hover{color:#555;background:#f1f1f1}
+.tools{display:flex;gap:4px;margin:4px 0}
+button.tool{border:1px solid #999;background:#f5f5f5;color:#222;padding:3px 7px;border-radius:3px;font:inherit;cursor:pointer}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border:1px solid #999;padding:3px 5px;line-height:1.2;vertical-align:middle}
+th{font-weight:700;background:#eee;text-align:center}
+th:nth-child(1){width:18%}
+th:nth-child(2){width:25%}
+th:nth-child(3){width:16%}
+th:nth-child(4){width:13%}
+th.status-head{width:7%;font-size:11px}
+.name{font-weight:700}
+.year{text-align:center;white-space:nowrap}
+.editing td{background:#fffef2}
+input.text,input[type=number]{width:100%;border:1px solid #aaa;padding:3px 4px;font:inherit;border-radius:2px;background:#fff}
+input.text:focus,input[type=number]:focus{outline:1px solid #555}
+.small{font-size:10px;color:#666;margin-top:2px}
+.status-cell{text-align:center;padding:2px!important}
+.status-box{
+  width:19px;height:19px;margin:auto;display:block;accent-color:#222;
+  cursor:default;
+}
+.status-box.editable{cursor:pointer}
+.status-box.auto{cursor:not-allowed}
+.del{border:1px solid #b40000;background:#fff;color:#b40000;padding:2px 4px;border-radius:2px;cursor:pointer;font:inherit;margin-top:3px}
+.empty{text-align:center;color:#777;padding:16px}
+.status{font-size:11px;color:#666;margin-top:4px;min-height:14px}
+.status.ok{color:#18733a}.status.err{color:#a00000}
+.drag-handle{display:inline-block;width:16px;margin-right:4px;color:#777;font-size:14px;cursor:grab;user-select:none;vertical-align:middle}
+.drag-handle:active{cursor:grabbing}
+tr.dragging{opacity:.45}
+tr.drag-over td{border-top:2px solid #555}
+
+.hidden{display:none!important}
+.legend{font-size:10px;color:#666;margin:4px 0 0 1px}
+@media(max-width:780px){
+  th:nth-child(2){width:24%}th:nth-child(3){width:14%}th:nth-child(4){width:12%}
+  th.status-head{width:8%}
+  .wrap{padding:0 3px}
+  table{min-width:820px}
+  .wrap{overflow-x:auto}
+}
+.login-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-mask.off{display:none}
+.login-box{width:320px;background:#fff;border:1px solid #888;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:16px}
+.login-title{font-weight:700;font-size:16px;padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid #bbb}
+.login-input{width:100%;box-sizing:border-box;border:1px solid #999;padding:7px;font:inherit}
+.login-buttons{text-align:right;margin-top:12px}
+.login-buttons button{margin-left:5px;padding:5px 10px;border:1px solid #888;background:#f4f4f4;cursor:pointer}
+.login-buttons .login-ok{background:#333;color:#fff;border-color:#333}
+.login-error{color:#b00000;font-size:11px;min-height:15px;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="login-mask" class="login-mask off">
+  <div class="login-box">
+    <div class="login-title">國有土地管理局登入驗證</div>
+    <input id="login-input" class="login-input" type="password" autocomplete="off" placeholder="請輸入管理密碼">
+    <div id="login-error" class="login-error"></div>
+    <div class="login-buttons">
+      <button id="login-cancel" type="button">取消</button>
+      <button id="login-ok" class="login-ok" type="button">登入</button>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <div class="top">
+    <div class="title">商事大街單位列表 <span id="db-light" class="db-light" title="資料庫連線正常" aria-label="資料庫連線正常"></span></div>
+    <button id="lock" class="lock" title="編輯">🔒</button>
+  </div>
+
+  <div id="tools" class="tools hidden">
+    <button id="add" class="tool">新增住宅</button>
+    <button id="save" class="tool">儲存</button>
+    <button id="cancel" class="tool">取消</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>單位名稱</th>
+        <th>單位地址</th>
+        <th>營業登記人</th>
+        <th>單位年度開始</th>
+        <th class="status-head">年度租金</th>
+        <th class="status-head">次年補繳</th>
+        <th class="status-head">單位查封</th>
+        <th class="status-head">國有收回</th>
+      </tr>
+    </thead>
+    <tbody id="rows">
+      <tr><td colspan="8" class="empty">正在讀取……</td></tr>
+    </tbody>
+  </table>
+
+
+</div>
+
+<script src="./business.js"></script>
+</body>
+</html>
