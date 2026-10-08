@@ -3,72 +3,242 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>國民大街住戶列表｜黃名帝國</title>
+<title>國民大街住戶列表</title>
 <style>
-:root{--purple:#4b0082;--gold:#d4af37;--ink:#29242d;--muted:#6f6875;--line:#ddd7e2}
-*{box-sizing:border-box}html,body{margin:0}body{background:#f5f3f7;color:var(--ink);font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif}
-.wrap{max-width:1050px;margin:28px auto;padding:0 15px}.card{background:#fff;border:1px solid var(--line);border-top:5px solid var(--purple);border-radius:14px;box-shadow:0 8px 28px #301c4117;overflow:hidden}
-header{padding:25px 28px 18px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:29px;letter-spacing:2px}.sub{margin-top:6px;color:var(--muted);font-size:14px}
-.bar{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}button{border:1px solid var(--purple);background:var(--purple);color:#fff;border-radius:9px;padding:9px 14px;font:inherit;cursor:pointer}button.alt{background:#fff;color:var(--purple)}button.danger{border-color:#a32d2d;background:#fff;color:#a32d2d}
-.notice{margin:18px 28px 0;padding:11px 14px;background:#faf7fd;border-left:4px solid var(--gold);font-size:13px;line-height:1.7}
-.table-wrap{overflow:auto;padding:22px 28px 8px}table{width:100%;border-collapse:collapse;min-width:680px}th,td{border:1px solid var(--line);padding:11px 13px;text-align:left}th{background:#f6f2fa;color:#351044}
-input{width:100%;border:1px solid #cfc8d5;border-radius:7px;padding:9px 10px;font:inherit;background:#fff}input:focus{outline:2px solid #d8c4e7;border-color:var(--purple)}
-.actions{white-space:nowrap;width:120px}.empty{text-align:center;color:var(--muted);padding:40px}.status{margin:0 28px 22px;color:var(--muted);font-size:13px}.status.ok{color:#25804b}.status.err{color:#b12c2c}.editing{background:#fffdf5}
-@media(max-width:700px){.wrap{margin:10px auto}.card{border-radius:10px}header{padding:20px}.notice,.table-wrap,.status{margin-left:20px;margin-right:20px}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#fff;color:#222;font-family:Arial,"Microsoft JhengHei",sans-serif;font-size:14px}
+.wrap{max-width:980px;margin:10px auto;padding:0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding:3px 0 6px}
+.title{font-size:18px;font-weight:700}
+.lock{border:0;background:#d60000;color:#fff;width:32px;height:30px;border-radius:4px;font-size:17px;cursor:pointer;line-height:30px;padding:0}
+.lock:hover{background:#b00000}
+.tools{display:flex;gap:4px;margin:5px 0;flex-wrap:wrap}
+button.tool{border:1px solid #999;background:#f5f5f5;color:#222;padding:3px 7px;border-radius:3px;font:inherit;cursor:pointer}
+button.tool:hover{background:#e9e9e9}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border:1px solid #999;padding:4px 6px;line-height:1.25;vertical-align:middle}
+th{font-weight:700;background:#eee;text-align:center}
+th:nth-child(1){width:24%}
+th:nth-child(2){width:34%}
+th:nth-child(3){width:20%}
+th:nth-child(4){width:22%}
+.name{font-weight:700}
+.year{white-space:nowrap;text-align:center}
+.editing td{background:#fffef2}
+input{width:100%;border:1px solid #aaa;padding:3px 4px;font:inherit;border-radius:2px;background:#fff}
+input:focus{outline:1px solid #555}
+.small{font-size:11px;color:#666;margin-top:2px}
+.del{border:1px solid #b40000;background:#fff;color:#b40000;padding:2px 5px;border-radius:2px;cursor:pointer;font:inherit;margin-top:3px}
+.del:hover{background:#ffe8e8}
+.empty{text-align:center;color:#777;padding:18px}
+.status{font-size:12px;color:#666;margin-top:5px;min-height:16px}
+.status.ok{color:#18733a}
+.status.err{color:#a00000}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
-<div class="wrap"><main class="card">
-<header>
-<h1>國民大街住戶列表</h1>
-<div class="sub">Wongming Empire · National Avenue Residents Directory</div>
-<div class="bar">
-<button id="edit">✎ 編輯住戶</button>
-<button id="add" class="alt" hidden>＋ 新增住宅</button>
-<button id="save" hidden>☁ 儲存到雲端</button>
-<button id="cancel" class="alt" hidden>取消</button>
+<div class="wrap">
+  <div class="top">
+    <div class="title">國民大街住戶列表</div>
+    <button id="lock" class="lock" title="編輯">🔒</button>
+  </div>
+
+  <div id="tools" class="tools hidden">
+    <button id="add" class="tool">新增住宅</button>
+    <button id="save" class="tool">儲存</button>
+    <button id="cancel" class="tool">取消</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>住宅名稱</th>
+        <th>住宅地址</th>
+        <th>戶籍登記人</th>
+        <th>持戶年度</th>
+      </tr>
+    </thead>
+    <tbody id="rows">
+      <tr><td colspan="4" class="empty">正在讀取……</td></tr>
+    </tbody>
+  </table>
+
+  <div id="status" class="status"></div>
 </div>
-</header>
-<div class="notice">住戶資料由雲端資料庫保存。進入編輯模式後，可直接修改<strong>住宅名稱</strong>與<strong>住宅地址</strong>，也可以新增或刪除住宅。</div>
-<div class="table-wrap"><table>
-<thead><tr><th style="width:32%">住宅名稱</th><th>住宅地址</th><th class="actions" id="actionHead" hidden>操作</th></tr></thead>
-<tbody id="rows"><tr><td colspan="3" class="empty">正在讀取資料……</td></tr></tbody>
-</table></div>
-<div id="status" class="status">正在連線雲端資料……</div>
-</main></div>
+
 <script>
 (function(){
-const rows=document.getElementById("rows"),status=document.getElementById("status");
-const edit=document.getElementById("edit"),add=document.getElementById("add"),save=document.getElementById("save"),cancel=document.getElementById("cancel"),actionHead=document.getElementById("actionHead");
-let data={version:1,households:[]},original=null,editing=false;
+  const API="https://wme-list.vercel.app/api/households";
+  const EDIT_PASSWORD="6666";
+  const YEAR_NOW=new Date().getFullYear();
 
-function setStatus(t,c=""){status.textContent=t;status.className="status "+c}
-function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function render(){
- if(!data.households.length){rows.innerHTML='<tr><td colspan="'+(editing?3:2)+'" class="empty">目前尚未登錄住戶。</td></tr>';return}
- rows.innerHTML=data.households.map((h,i)=>{
-  if(editing)return '<tr class="editing"><td><input data-i="'+i+'" data-k="name" value="'+esc(h.name)+'"></td><td><input data-i="'+i+'" data-k="address" value="'+esc(h.address)+'"></td><td class="actions"><button class="danger" data-del="'+i+'">刪除</button></td></tr>';
-  return '<tr><td><strong>'+esc(h.name||"未命名住宅")+'</strong></td><td>'+esc(h.address||"尚未登錄地址")+'</td></tr>';
- }).join("");
-}
-async function load(){
- setStatus("正在讀取雲端資料……");
- try{const r=await fetch("https://wme-list.vercel.app/api/households",{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);data=await r.json();if(!Array.isArray(data.households))data.households=[];render();setStatus("雲端資料已載入","ok")}
- catch(e){setStatus("讀取失敗："+e.message,"err")}
-}
-function startEdit(){original=JSON.parse(JSON.stringify(data));editing=true;edit.hidden=true;add.hidden=false;save.hidden=false;cancel.hidden=false;actionHead.hidden=false;render();setStatus("編輯模式：修改完成後按「儲存到雲端」")}
-function stopEdit(){editing=false;edit.hidden=false;add.hidden=true;save.hidden=true;cancel.hidden=true;actionHead.hidden=true;render()}
-edit.onclick=startEdit;
-cancel.onclick=()=>{data=original||data;stopEdit();setStatus("已取消修改")}
-add.onclick=()=>{data.households.push({id:Date.now(),name:"",address:""});render();rows.lastElementChild?.querySelector("input")?.focus()}
-rows.addEventListener("input",e=>{if(e.target.matches("input[data-i]"))data.households[+e.target.dataset.i][e.target.dataset.k]=e.target.value});
-rows.addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;data.households.splice(+b.dataset.del,1);render()});
-save.onclick=async()=>{
- save.disabled=true;setStatus("正在儲存到雲端……");
- try{const r=await fetch("/api/households",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const out=await r.json();if(!r.ok)throw Error(out.error||"儲存失敗");data=out;stopEdit();setStatus("✓ 已成功儲存到雲端","ok")}
- catch(e){setStatus("儲存失敗："+e.message,"err")}finally{save.disabled=false}
-};
-load();
+  const rows=document.getElementById("rows");
+  const status=document.getElementById("status");
+  const lock=document.getElementById("lock");
+  const tools=document.getElementById("tools");
+  const add=document.getElementById("add");
+  const save=document.getElementById("save");
+  const cancel=document.getElementById("cancel");
+
+  let data={version:1,updatedAt:"",households:[]};
+  let backup=null;
+  let editing=false;
+
+  function statusText(t,c){
+    status.textContent=t||"";
+    status.className="status "+(c||"");
+  }
+
+  function esc(v){
+    return String(v??"").replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function yearText(v){
+    const y=parseInt(v,10);
+    if(!Number.isFinite(y)) return v?String(v):"";
+    return y+"（"+Math.max(0,YEAR_NOW-y)+"年）";
+  }
+
+  function render(){
+    if(!data.households.length){
+      rows.innerHTML='<tr><td colspan="4" class="empty">目前沒有登錄住戶。</td></tr>';
+      return;
+    }
+
+    if(!editing){
+      rows.innerHTML=data.households.map(function(h){
+        return '<tr>'+
+          '<td class="name">'+esc(h.name||"")+'</td>'+
+          '<td>'+esc(h.address||"")+'</td>'+
+          '<td>'+esc(h.registrant||"")+'</td>'+
+          '<td class="year">'+esc(yearText(h.year))+'</td>'+
+          '</tr>';
+      }).join("");
+      return;
+    }
+
+    rows.innerHTML=data.households.map(function(h,i){
+      return '<tr class="editing">'+
+        '<td><input data-i="'+i+'" data-k="name" value="'+esc(h.name||"")+'"></td>'+
+        '<td><input data-i="'+i+'" data-k="address" value="'+esc(h.address||"")+'"></td>'+
+        '<td><input data-i="'+i+'" data-k="registrant" value="'+esc(h.registrant||"")+'"></td>'+
+        '<td class="year">'+
+          '<input type="number" min="0" step="1" data-i="'+i+'" data-k="year" value="'+esc(h.year||"")+'">'+
+          '<div class="small">目前 '+YEAR_NOW+' 年：'+esc(yearText(h.year))+'</div>'+
+          '<button type="button" class="del" data-del="'+i+'">刪除</button>'+
+        '</td>'+
+        '</tr>';
+    }).join("");
+  }
+
+  rows.addEventListener("input",function(e){
+    const el=e.target;
+    if(!el.matches("input[data-i]"))return;
+    const i=Number(el.dataset.i);
+    data.households[i][el.dataset.k]=el.value;
+    if(el.dataset.k==="year"){
+      const note=el.parentElement.querySelector(".small");
+      if(note)note.textContent="目前 "+YEAR_NOW+" 年："+yearText(el.value);
+    }
+  });
+
+  rows.addEventListener("click",function(e){
+    const btn=e.target.closest("[data-del]");
+    if(!btn || !editing)return;
+    const i=Number(btn.dataset.del);
+    if(confirm("確定刪除此住宅？")){
+      data.households.splice(i,1);
+      render();
+    }
+  });
+
+  function enterEdit(){
+    const pw=prompt("請輸入編輯密碼：");
+    if(pw!==EDIT_PASSWORD){
+      alert("密碼錯誤");
+      return;
+    }
+    backup=JSON.parse(JSON.stringify(data));
+    editing=true;
+    lock.textContent="🔓";
+    tools.classList.remove("hidden");
+    render();
+    statusText("編輯模式","ok");
+  }
+
+  function exitEdit(){
+    editing=false;
+    lock.textContent="🔒";
+    tools.classList.add("hidden");
+    render();
+  }
+
+  lock.onclick=function(){
+    if(editing){
+      exitEdit();
+      statusText("已鎖定");
+    }else{
+      enterEdit();
+    }
+  };
+
+  cancel.onclick=function(){
+    if(backup)data=JSON.parse(JSON.stringify(backup));
+    exitEdit();
+    statusText("已取消修改");
+  };
+
+  add.onclick=function(){
+    data.households.push({id:Date.now(),name:"",address:"",registrant:"",year:""});
+    render();
+    const inputs=rows.querySelectorAll("input");
+    if(inputs.length)inputs[inputs.length-4].focus();
+  };
+
+  save.onclick=async function(){
+    save.disabled=true;
+    statusText("正在儲存……");
+    try{
+      const r=await fetch(API,{
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json",
+          "X-Edit-Password":EDIT_PASSWORD
+        },
+        body:JSON.stringify(data)
+      });
+      const out=await r.json();
+      if(!r.ok)throw new Error(out.error||("HTTP "+r.status));
+      data=out;
+      exitEdit();
+      statusText("已儲存","ok");
+    }catch(e){
+      statusText("儲存失敗："+e.message,"err");
+    }finally{
+      save.disabled=false;
+    }
+  };
+
+  async function load(){
+    statusText("正在讀取……");
+    try{
+      const r=await fetch(API,{cache:"no-store"});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const out=await r.json();
+      data=out&&Array.isArray(out.households)?out:{version:1,households:[]};
+      render();
+      statusText("共 "+data.households.length+" 戶");
+    }catch(e){
+      rows.innerHTML='<tr><td colspan="4" class="empty">讀取失敗：'+esc(e.message)+'</td></tr>';
+      statusText(e.message,"err");
+    }
+  }
+
+  load();
 })();
 </script>
 </body>
