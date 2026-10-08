@@ -10,7 +10,10 @@ html,body{margin:0;padding:0}
 body{background:#fff;color:#222;font-family:Arial,"Microsoft JhengHei",sans-serif;font-size:13px}
 .wrap{max-width:1100px;margin:8px auto;padding:0 6px}
 .top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;padding:2px 0 5px}
-.title{font-size:17px;font-weight:700}
+.title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:7px}
+.db-light{width:9px;height:9px;border-radius:50%;display:inline-block;background:#2ecc71;box-shadow:0 0 5px #2ecc71;animation:db-breathe 1.8s ease-in-out infinite}
+.db-light.offline{background:#e74c3c;box-shadow:0 0 5px #e74c3c;animation:none}
+@keyframes db-breathe{0%,100%{opacity:.55;transform:scale(.9);box-shadow:0 0 4px #2ecc71}50%{opacity:1;transform:scale(1.15);box-shadow:0 0 9px #2ecc71,0 0 16px rgba(46,204,113,.35)}}
 .lock{border:0;background:#d60000;color:#fff;width:31px;height:29px;border-radius:3px;font-size:16px;cursor:pointer;padding:0}
 .lock:hover{background:#b00000}
 .tools{display:flex;gap:4px;margin:4px 0}
@@ -54,7 +57,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="title">國民大街住戶列表</div>
+    <div class="title">國民大街住戶列表 <span id="db-light" class="db-light" title="資料庫連線正常" aria-label="資料庫連線正常"></span></div>
     <button id="lock" class="lock" title="編輯">🔒</button>
   </div>
 
@@ -82,8 +85,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
     </tbody>
   </table>
 
-  <div class="legend">年度租金為唯一人工勾選項；其餘三項依未繳年度自動遞進。</div>
-  <div id="status" class="status"></div>
+
 </div>
 
 <script>
@@ -93,7 +95,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   const YEAR_NOW=new Date().getFullYear();
 
   const rows=document.getElementById("rows");
-  const status=document.getElementById("status");
+  const dbLight=document.getElementById("db-light");
   const lock=document.getElementById("lock");
   const tools=document.getElementById("tools");
   const add=document.getElementById("add");
@@ -105,8 +107,11 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   let editing=false;
 
   function statusText(t,c){
-    status.textContent=t||"";
-    status.className="status "+(c||"");
+    if(!dbLight)return;
+    const offline=(c==="err");
+    dbLight.classList.toggle("offline",offline);
+    dbLight.title=offline?"資料庫讀取失敗":"資料庫連線正常";
+    dbLight.setAttribute("aria-label",offline?"資料庫讀取失敗":"資料庫連線正常");
   }
 
   function esc(v){
@@ -245,7 +250,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
     lock.textContent="🔓";
     tools.classList.remove("hidden");
     render();
-    statusText("編輯模式","ok");
+    statusText("", "ok");
   }
 
   function exitEdit(){
@@ -258,7 +263,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   lock.onclick=function(){
     if(editing){
       exitEdit();
-      statusText("已鎖定");
+      statusText("", "ok");
     }else{
       enterEdit();
     }
@@ -267,7 +272,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   cancel.onclick=function(){
     if(backup)data=JSON.parse(JSON.stringify(backup));
     exitEdit();
-    statusText("已取消修改");
+    statusText("", "ok");
   };
 
   add.onclick=function(){
@@ -287,7 +292,7 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
 
   save.onclick=async function(){
     save.disabled=true;
-    statusText("正在儲存……");
+    statusText("", "ok");
     try{
       const r=await fetch(API,{
         method:"PUT",
@@ -301,16 +306,16 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
       if(!r.ok)throw new Error(out.error||("HTTP "+r.status));
       data=out;
       exitEdit();
-      statusText("已儲存","ok");
+      statusText("", "ok");
     }catch(e){
-      statusText("儲存失敗："+e.message,"err");
+      statusText("", "err");
     }finally{
       save.disabled=false;
     }
   };
 
   async function load(){
-    statusText("正在讀取……");
+    statusText("", "ok");
     try{
       const r=await fetch(API,{cache:"no-store"});
       if(!r.ok)throw new Error("HTTP "+r.status);
@@ -318,10 +323,10 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
       data=out&&Array.isArray(out.households)?out:{version:2,households:[]};
       data.households.forEach(normalizeHousehold);
       render();
-      statusText("共 "+data.households.length+" 戶");
+      statusText("", "ok");
     }catch(e){
       rows.innerHTML='<tr><td colspan="8" class="empty">讀取失敗：'+esc(e.message)+'</td></tr>';
-      statusText(e.message,"err");
+      statusText("", "err");
     }
   }
 
