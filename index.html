@@ -3,12 +3,170 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="0; url=./privy.html">
-<title>黃名帝國官職表</title>
-<link rel="canonical" href="./privy.html">
+<title>國民大街住戶列表｜黃名帝國</title>
+<meta name="description" content="黃名帝國國民大街住戶列表">
+<style>
+:root{
+  --purple:#4b0082;
+  --purple-2:#6a1b9a;
+  --gold:#d4af37;
+  --ink:#242124;
+  --muted:#6b6770;
+  --line:#ddd7e2;
+  --paper:#fff;
+  --bg:#f5f3f7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:linear-gradient(180deg,#f7f4fa 0,#f2eff4 100%);
+  color:var(--ink);
+  font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+}
+.container{max-width:1050px;margin:28px auto;padding:0 16px}
+.card{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-top:5px solid var(--purple);
+  border-radius:14px;
+  box-shadow:0 8px 28px rgba(48,28,65,.09);
+  overflow:hidden;
+}
+.header{padding:26px 28px 20px;border-bottom:1px solid var(--line)}
+.header-top{display:flex;gap:18px;align-items:flex-start;justify-content:space-between}
+h1{margin:0;color:#24132d;font-size:30px;letter-spacing:2px}
+.subtitle{margin-top:7px;color:var(--muted);font-size:14px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+button,.edit-link{
+  appearance:none;border:1px solid var(--purple);background:var(--purple);color:#fff;
+  border-radius:9px;padding:9px 14px;font:inherit;cursor:pointer;text-decoration:none;
+}
+button.secondary,.edit-link.secondary{background:#fff;color:var(--purple)}
+button:hover,.edit-link:hover{filter:brightness(1.07)}
+.notice{
+  margin:0 28px;padding:12px 14px;background:#faf7fd;border-left:4px solid var(--gold);
+  color:#514756;font-size:13px;line-height:1.65;
+}
+.table-wrap{overflow:auto;padding:22px 28px 8px}
+table{width:100%;border-collapse:collapse;min-width:700px}
+th,td{border:1px solid var(--line);padding:12px 14px}
+th{background:#f6f2fa;color:#351044;text-align:left;font-weight:700}
+tbody tr:nth-child(even){background:#fcfbfd}
+.empty{text-align:center;padding:46px 20px;color:var(--muted)}
+.count{font-size:13px;color:var(--muted);margin:0 28px 20px}
+.footer{padding:14px 28px 24px;font-size:12px;color:var(--muted)}
+.badge{
+  display:inline-block;padding:3px 9px;border-radius:999px;background:#f6f0da;color:#7a6200;
+  border:1px solid #dbc870;font-size:12px;margin-left:8px;
+}
+dialog{
+  width:min(720px,calc(100% - 24px));border:0;border-radius:14px;padding:0;
+  box-shadow:0 24px 80px rgba(0,0,0,.25);
+}
+dialog::backdrop{background:rgba(22,13,29,.46)}
+.dialog-inner{padding:24px}
+.dialog-inner h2{margin:0 0 10px;color:#351044}
+.dialog-inner p{color:var(--muted);line-height:1.7}
+.code{
+  background:#19151c;color:#f5eafa;border-radius:10px;padding:14px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;
+}
+.close-row{display:flex;justify-content:flex-end;margin-top:16px}
+@media(max-width:700px){
+  .container{margin:12px auto;padding:0 10px}
+  .header{padding:20px 18px}
+  .header-top{flex-direction:column}
+  h1{font-size:24px}
+  .notice,.table-wrap,.count{margin-left:18px;margin-right:18px}
+}
+</style>
 </head>
 <body>
-<p>正在開啟司憲院制司受憲秘閣院職官表……</p>
-<script>location.replace('./privy.html');</script>
+<div class="container">
+  <main class="card">
+    <header class="header">
+      <div class="header-top">
+        <div>
+          <h1>國民大街住戶列表</h1>
+          <div class="subtitle">Wongming Empire · National Avenue Residents Directory</div>
+        </div>
+        <div class="toolbar">
+          <a class="edit-link" href="https://github.com/annynn1990/wme-list/edit/main/data.json" target="_blank" rel="noopener">✎ 編輯資料</a>
+          <button class="secondary" id="helpBtn" type="button">如何儲存</button>
+        </div>
+      </div>
+    </header>
+    <div class="notice">
+      本頁資料直接取自 GitHub 上的 <strong>data.json</strong>，不是瀏覽器本機儲存。完成修改並在 GitHub 按下 Commit 後，所有訪客都會讀到新的住戶資料。
+    </div>
+    <div class="table-wrap">
+      <table aria-label="國民大街住戶列表">
+        <thead>
+          <tr><th style="width:34%">住宅名稱</th><th>住宅地址</th></tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="2" class="empty">正在讀取住戶資料……</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="count" id="count"></p>
+    <footer class="footer">資料來源：wme-list GitHub repository · 雲端資料檔：<code>data.json</code></footer>
+  </main>
+</div>
+
+<dialog id="helpDialog">
+  <div class="dialog-inner">
+    <h2>如何修改並雲端儲存</h2>
+    <p>按右上角「編輯資料」後，GitHub 會開啟 <code>data.json</code> 的編輯頁。直接修改住宅名稱與住宅地址，最後按 GitHub 的 Commit changes。Commit 完成後，網站會自動讀取最新版資料。</p>
+    <div class="code">{
+  "version": 1,
+  "updatedAt": "2026-10-08T13:00:00+08:00",
+  "households": [
+    {
+      "id": 1,
+      "name": "住宅名稱",
+      "address": "住宅地址"
+    }
+  ]
+}</div>
+    <div class="close-row"><button id="closeHelp" type="button">關閉</button></div>
+  </div>
+</dialog>
+
+<script>
+(async function(){
+  const rows=document.getElementById('rows');
+  const count=document.getElementById('count');
+  const help=document.getElementById('helpDialog');
+  const url='./data.json?ts='+Date.now();
+
+  document.getElementById('helpBtn').onclick=()=>help.showModal();
+  document.getElementById('closeHelp').onclick=()=>help.close();
+
+  function esc(v){
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  try{
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const list=Array.isArray(data.households)?data.households:[];
+    if(!list.length){
+      rows.innerHTML='<tr><td colspan="2" class="empty">目前尚未登錄住戶。</td></tr>';
+      count.textContent='共 0 戶';
+      return;
+    }
+    rows.innerHTML=list.map((h,i)=>{
+      const name=(h.name||'').trim() || '未命名住宅';
+      const address=(h.address||'').trim() || '尚未登錄地址';
+      return '<tr><td><strong>'+esc(name)+'</strong></td><td>'+esc(address)+'</td></tr>';
+    }).join('');
+    count.textContent='共 '+list.length+' 戶';
+  }catch(err){
+    rows.innerHTML='<tr><td colspan="2" class="empty">住戶資料讀取失敗：'+esc(err.message)+'</td></tr>';
+    count.textContent='';
+  }
+})();
+</script>
 </body>
 </html>
