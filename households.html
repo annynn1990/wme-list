@@ -159,35 +159,66 @@ tr.drag-over td{border-top:2px solid #555}
 
   function normalizeHousehold(h){
     if(!h.rentPaidYear && h.rentPaidYear !== 0) h.rentPaidYear="";
-    if(!h.rentMissedSince && h.rentMissedSince !== 0){
-      h.rentMissedSince = h.rentPaidYear !== "" ? Number(h.rentPaidYear)+1 : YEAR_NOW;
+    if(!h.rentMissedSince && h.rentMissedSince !== 0) h.rentMissedSince="";
+    if(!h.rentSupplementYear && h.rentSupplementYear !== 0) h.rentSupplementYear="";
+
+    if(!h.rentState){
+      const paidYear=parseInt(h.rentPaidYear,10);
+      const supplementYear=parseInt(h.rentSupplementYear,10);
+      const missedYear=parseInt(h.rentMissedSince,10);
+
+      if(Number.isFinite(supplementYear) && supplementYear===YEAR_NOW){
+        h.rentState="supplementPaid";
+        h.rentStateYear=supplementYear;
+      }else if(Number.isFinite(paidYear) && paidYear===YEAR_NOW){
+        h.rentState="annualPaid";
+        h.rentStateYear=paidYear;
+      }else if(Number.isFinite(missedYear)){
+        h.rentState="awaitingSupplement";
+        h.rentStateYear=missedYear;
+      }else{
+        h.rentState="annualPaid";
+        h.rentStateYear=Number.isFinite(paidYear)?paidYear:"";
+      }
     }
-    if(h.rentPaidYear === YEAR_NOW) h.rentMissedSince="";
+
+    let stateYear=parseInt(h.rentStateYear,10);
+
+    if(h.rentState==="awaitingSupplement" && Number.isFinite(stateYear) && YEAR_NOW>stateYear+1){
+      h.rentState="sealed";
+      h.rentStateYear=YEAR_NOW;
+      stateYear=YEAR_NOW;
+    }
+
+    if(h.rentState==="sealed" && Number.isFinite(stateYear) && YEAR_NOW>stateYear){
+      h.rentState="reclaimed";
+      h.rentStateYear=YEAR_NOW;
+    }
+
     return h;
   }
 
   function statusState(h){
     normalizeHousehold(h);
-    const paidYear=parseInt(h.rentPaidYear,10);
-    const missedSince=parseInt(h.rentMissedSince,10);
-
-    const annual=(Number.isFinite(paidYear) && paidYear===YEAR_NOW);
-    let overdue=0;
-    if(Number.isFinite(missedSince)){
-      overdue=Math.max(0,YEAR_NOW-missedSince);
-    }
+    const stateYear=parseInt(h.rentStateYear,10);
+    const current=(Number.isFinite(stateYear) && stateYear===YEAR_NOW);
 
     return {
-      annual,
-      unpaid: overdue>=1,
-      sealed: overdue>=2,
-      reclaimed: overdue>=3
+      annual: h.rentState==="annualPaid" && current,
+      supplement: h.rentState==="supplementPaid" && current,
+      sealed: h.rentState==="sealed" && current,
+      reclaimed: h.rentState==="reclaimed" && current,
+      annualEditable: !["awaitingSupplement","sealed","reclaimed"].includes(h.rentState),
+      supplementEditable:
+        h.rentState==="awaitingSupplement" &&
+        Number.isFinite(stateYear) &&
+        YEAR_NOW===stateYear+1
     };
   }
 
-  function box(checked, editable, i){
+  function box(checked, editable, i, action){
     return '<input type="checkbox" class="status-box '+(editable?"editable":"auto")+'" '+(checked?"checked":"")+
-      (editable?' data-rent="'+i+'"':' disabled')+' aria-label="狀態">';
+      (editable?' data-rent="'+i+'" data-rent-action="'+action+'"':' disabled')+' aria-label="狀態">';
   }
 
   function render(){
@@ -204,10 +235,10 @@ tr.drag-over td{border-top:2px solid #555}
           '<td>'+esc(h.address||"")+'</td>'+
           '<td>'+esc(h.registrant||"")+'</td>'+
           '<td class="year">'+esc(holdingText(h.year))+'</td>'+
-          '<td class="status-cell">'+box(s.annual,false)+'</td>'+
-          '<td class="status-cell">'+box(s.unpaid,false)+'</td>'+
-          '<td class="status-cell">'+box(s.sealed,false)+'</td>'+
-          '<td class="status-cell">'+box(s.reclaimed,false)+'</td>'+
+          '<td class="status-cell">'+box(s.annual,false,i,"annual")+'</td>'+
+          '<td class="status-cell">'+box(s.supplement,false,i,"supplement")+'</td>'+
+          '<td class="status-cell">'+box(s.sealed,false,i,"sealed")+'</td>'+
+          '<td class="status-cell">'+box(s.reclaimed,false,i,"reclaimed")+'</td>'+
           '</tr>';
       }).join("");
       return;
@@ -224,10 +255,10 @@ tr.drag-over td{border-top:2px solid #555}
           '<div class="small">目前 '+YEAR_NOW+' 年：'+esc(holdingText(h.year))+'</div>'+
           '<button type="button" class="del" data-del="'+i+'">刪除</button>'+
         '</td>'+
-        '<td class="status-cell">'+box(s.annual,true,i)+'</td>'+
-        '<td class="status-cell">'+box(s.unpaid,false)+'</td>'+
-        '<td class="status-cell">'+box(s.sealed,false)+'</td>'+
-        '<td class="status-cell">'+box(s.reclaimed,false)+'</td>'+
+        '<td class="status-cell">'+box(s.annual,s.annualEditable,i,"annual")+'</td>'+
+        '<td class="status-cell">'+box(s.supplement,s.supplementEditable,i,"supplement")+'</td>'+
+        '<td class="status-cell">'+box(s.sealed,false,i,"sealed")+'</td>'+
+        '<td class="status-cell">'+box(s.reclaimed,false,i,"reclaimed")+'</td>'+
         '</tr>';
     }).join("");
   }
@@ -310,14 +341,35 @@ tr.drag-over td{border-top:2px solid #555}
 
     const i=Number(rent.dataset.rent);
     const h=data.households[i];
+    const action=rent.dataset.rentAction;
 
-    if(rent.checked){
-      h.rentPaidYear=YEAR_NOW;
-      h.rentMissedSince="";
-    }else{
-      h.rentPaidYear=YEAR_NOW-1;
-      h.rentMissedSince=YEAR_NOW;
+    if(action==="annual"){
+      if(rent.checked){
+        h.rentPaidYear=YEAR_NOW;
+        h.rentMissedSince="";
+        h.rentSupplementYear="";
+        h.rentState="annualPaid";
+        h.rentStateYear=YEAR_NOW;
+      }else{
+        // 本年度未繳：下一年度只能進入「次年補繳」階段。
+        h.rentPaidYear=YEAR_NOW-1;
+        h.rentMissedSince=YEAR_NOW;
+        h.rentSupplementYear="";
+        h.rentState="awaitingSupplement";
+        h.rentStateYear=YEAR_NOW;
+      }
+    }else if(action==="supplement"){
+      if(rent.checked){
+        h.rentSupplementYear=YEAR_NOW;
+        h.rentState="supplementPaid";
+        h.rentStateYear=YEAR_NOW;
+      }else{
+        h.rentSupplementYear="";
+        h.rentState="awaitingSupplement";
+        h.rentStateYear=YEAR_NOW-1;
+      }
     }
+
     render();
   });
 
@@ -399,8 +451,11 @@ tr.drag-over td{border-top:2px solid #555}
       address:"",
       registrant:"",
       year:"",
-      rentPaidYear: YEAR_NOW-1,
-      rentMissedSince: YEAR_NOW
+      rentPaidYear:"",
+      rentMissedSince:"",
+      rentSupplementYear:"",
+      rentState:"annualPaid",
+      rentStateYear:YEAR_NOW
     });
     render();
     const inputs=rows.querySelectorAll("input.text,input[type=number]");
