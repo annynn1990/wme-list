@@ -46,7 +46,9 @@
     if(!h.rentMissedSince && h.rentMissedSince !== 0) h.rentMissedSince="";
     if(!h.rentSupplementYear && h.rentSupplementYear !== 0) h.rentSupplementYear="";
 
-    if(!h.rentState){
+    const validStates=["annualPaid","supplementPaid","awaitingSupplement","sealed","reclaimed"];
+
+    if(!validStates.includes(h.rentState)){
       const paidYear=parseInt(h.rentPaidYear,10);
       const supplementYear=parseInt(h.rentSupplementYear,10);
       const missedYear=parseInt(h.rentMissedSince,10);
@@ -61,9 +63,14 @@
         h.rentState="awaitingSupplement";
         h.rentStateYear=missedYear;
       }else{
+        // 新商戶或沒有舊狀態資料：預設為本年度正常繳租，年度租金可勾選。
         h.rentState="annualPaid";
-        h.rentStateYear=Number.isFinite(paidYear)?paidYear:"";
+        h.rentStateYear=YEAR_NOW;
       }
+    }
+
+    if(h.rentState==="annualPaid" && !Number.isFinite(parseInt(h.rentStateYear,10))){
+      h.rentStateYear=YEAR_NOW;
     }
 
     let stateYear=parseInt(h.rentStateYear,10);
