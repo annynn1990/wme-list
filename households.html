@@ -444,7 +444,7 @@ tr.drag-over td{border-top:2px solid #555}
         const by=parseInt(b.year,10);
         const av=Number.isFinite(ay)?ay:-Infinity;
         const bv=Number.isFinite(by)?by:-Infinity;
-        return bv-av;
+        return av-bv;
       });
       render();
       statusText("", "ok");
