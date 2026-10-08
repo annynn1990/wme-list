@@ -35,9 +35,7 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  if (req.method === "GET") {
-    return send(res, await readData());
-  }
+  if (req.method === "GET") return send(res, await readData());
 
   if (req.method !== "PUT") {
     return send(res, { error: "Method Not Allowed" }, 405);
@@ -58,11 +56,13 @@ export default async function handler(req, res) {
       name: String(item.name ?? "").trim(),
       address: String(item.address ?? "").trim(),
       registrant: String(item.registrant ?? "").trim(),
-      year: String(item.year ?? "").trim()
+      year: String(item.year ?? "").trim(),
+      rentPaidYear: String(item.rentPaidYear ?? "").trim(),
+      rentMissedSince: String(item.rentMissedSince ?? "").trim()
     }));
 
     const data = {
-      version: 2,
+      version: 3,
       updatedAt: new Date().toISOString(),
       households
     };
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     });
 
     return send(res, data);
-  } catch (error) {
+  } catch {
     return send(res, { error: "儲存住戶資料失敗" }, 500);
   }
 }
