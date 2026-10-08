@@ -162,37 +162,68 @@ tr.drag-over td{border-top:2px solid #555}
     if(!h.rentMissedSince && h.rentMissedSince !== 0) h.rentMissedSince="";
     if(!h.rentSupplementYear && h.rentSupplementYear !== 0) h.rentSupplementYear="";
 
-    if(!h.rentState){
-      const paidYear=parseInt(h.rentPaidYear,10);
-      const supplementYear=parseInt(h.rentSupplementYear,10);
-      const missedYear=parseInt(h.rentMissedSince,10);
+    const paidYear=parseInt(h.rentPaidYear,10);
+    const supplementYear=parseInt(h.rentSupplementYear,10);
+    let missedYear=parseInt(h.rentMissedSince,10);
+    let stateYear=parseInt(h.rentStateYear,10);
 
-      if(Number.isFinite(supplementYear) && supplementYear===YEAR_NOW){
-        h.rentState="supplementPaid";
-        h.rentStateYear=supplementYear;
-      }else if(Number.isFinite(paidYear) && paidYear===YEAR_NOW){
+    // 「今年尚未繳」不能提前算成補繳，必須等到下一年 1 月 1 日。
+    if(Number.isFinite(missedYear) && missedYear>=YEAR_NOW){
+      h.rentMissedSince="";
+      missedYear=NaN;
+
+      if(h.rentState==="awaitingSupplement" && (!Number.isFinite(stateYear) || stateYear>=YEAR_NOW)){
         h.rentState="annualPaid";
-        h.rentStateYear=paidYear;
-      }else if(Number.isFinite(missedYear)){
-        h.rentState="awaitingSupplement";
-        h.rentStateYear=missedYear;
-      }else{
-        h.rentState="annualPaid";
-        h.rentStateYear=Number.isFinite(paidYear)?paidYear:"";
+        h.rentStateYear=Number.isFinite(paidYear) && paidYear===YEAR_NOW ? YEAR_NOW : "";
+        stateYear=parseInt(h.rentStateYear,10);
       }
     }
 
-    let stateYear=parseInt(h.rentStateYear,10);
+    // 補繳在本年度完成後，下一年度重新進入新的年度租金週期。
+    if(h.rentState==="supplementPaid" && Number.isFinite(supplementYear) && supplementYear<YEAR_NOW){
+      h.rentSupplementYear="";
+      h.rentMissedSince="";
+      h.rentState="annualPaid";
+      h.rentStateYear=Number.isFinite(paidYear) && paidYear===YEAR_NOW ? YEAR_NOW : "";
+      stateYear=parseInt(h.rentStateYear,10);
+    }
 
-    if(h.rentState==="awaitingSupplement" && Number.isFinite(stateYear) && YEAR_NOW>stateYear+1){
-      h.rentState="sealed";
-      h.rentStateYear=YEAR_NOW;
-      stateYear=YEAR_NOW;
+    // 每年 1 月 1 日才判定上一年度是否進入「次年補繳」。
+    const previousYear=YEAR_NOW-1;
+    if(
+      h.rentState!=="sealed" &&
+      h.rentState!=="reclaimed" &&
+      Number.isFinite(paidYear) &&
+      paidYear<previousYear &&
+      !(Number.isFinite(missedYear) && missedYear===previousYear) &&
+      !(Number.isFinite(supplementYear) && supplementYear===YEAR_NOW)
+    ){
+      h.rentMissedSince=previousYear;
+      h.rentSupplementYear="";
+      h.rentState="awaitingSupplement";
+      h.rentStateYear=previousYear;
+      missedYear=previousYear;
+      stateYear=previousYear;
+    }
+
+    if(h.rentState==="awaitingSupplement" && Number.isFinite(stateYear)){
+      if(YEAR_NOW===stateYear+1){
+        // 正常次年補繳期間。
+      }else if(YEAR_NOW>stateYear+1){
+        h.rentState="sealed";
+        h.rentStateYear=YEAR_NOW;
+        stateYear=YEAR_NOW;
+      }
     }
 
     if(h.rentState==="sealed" && Number.isFinite(stateYear) && YEAR_NOW>stateYear){
       h.rentState="reclaimed";
       h.rentStateYear=YEAR_NOW;
+    }
+
+    if(!h.rentState){
+      h.rentState="annualPaid";
+      h.rentStateYear=Number.isFinite(paidYear) && paidYear===YEAR_NOW ? YEAR_NOW : "";
     }
 
     return h;
@@ -201,14 +232,14 @@ tr.drag-over td{border-top:2px solid #555}
   function statusState(h){
     normalizeHousehold(h);
     const stateYear=parseInt(h.rentStateYear,10);
-    const current=(Number.isFinite(stateYear) && stateYear===YEAR_NOW);
-
     return {
-      annual: h.rentState==="annualPaid" && current,
-      supplement: h.rentState==="supplementPaid" && current,
-      sealed: h.rentState==="sealed" && current,
-      reclaimed: h.rentState==="reclaimed" && current,
-      annualEditable: !["awaitingSupplement","sealed","reclaimed"].includes(h.rentState),
+      // 年度租金只看「今年是否已繳」，不受上一年度補繳狀態鎖死。
+      annual: parseInt(h.rentPaidYear,10)===YEAR_NOW,
+      supplement: h.rentState==="supplementPaid" &&
+                  parseInt(h.rentSupplementYear,10)===YEAR_NOW,
+      sealed: h.rentState==="sealed" && Number.isFinite(stateYear) && stateYear===YEAR_NOW,
+      reclaimed: h.rentState==="reclaimed" && Number.isFinite(stateYear) && stateYear===YEAR_NOW,
+      annualEditable: !["sealed","reclaimed"].includes(h.rentState),
       supplementEditable:
         h.rentState==="awaitingSupplement" &&
         Number.isFinite(stateYear) &&
@@ -216,7 +247,7 @@ tr.drag-over td{border-top:2px solid #555}
     };
   }
 
-  function box(checked, editable, i, action){
+    function box(checked, editable, i, action){
     return '<input type="checkbox" class="status-box '+(editable?"editable":"auto")+'" '+(checked?"checked":"")+
       (editable?' data-rent="'+i+'" data-rent-action="'+action+'"':' disabled')+' aria-label="狀態">';
   }
@@ -345,18 +376,19 @@ tr.drag-over td{border-top:2px solid #555}
 
     if(action==="annual"){
       if(rent.checked){
+        // 今年繳租：只記錄今年，不能影響上一年度的補繳狀態。
         h.rentPaidYear=YEAR_NOW;
-        h.rentMissedSince="";
-        h.rentSupplementYear="";
-        h.rentState="annualPaid";
-        h.rentStateYear=YEAR_NOW;
+        if(!h.rentState || ["annualPaid"].includes(h.rentState)){
+          h.rentState="annualPaid";
+          h.rentStateYear=YEAR_NOW;
+        }
       }else{
-        // 本年度未繳：下一年度只能進入「次年補繳」階段。
-        h.rentPaidYear=YEAR_NOW-1;
-        h.rentMissedSince=YEAR_NOW;
-        h.rentSupplementYear="";
-        h.rentState="awaitingSupplement";
-        h.rentStateYear=YEAR_NOW;
+        // 今年未繳也只是「今年尚未繳」，要等明年 1 月 1 日才轉入次年補繳。
+        h.rentPaidYear="";
+        if(h.rentState==="annualPaid"){
+          h.rentState="annualPaid";
+          h.rentStateYear="";
+        }
       }
     }else if(action==="supplement"){
       if(rent.checked){
@@ -365,15 +397,18 @@ tr.drag-over td{border-top:2px solid #555}
         h.rentStateYear=YEAR_NOW;
       }else{
         h.rentSupplementYear="";
-        h.rentState="awaitingSupplement";
-        h.rentStateYear=YEAR_NOW-1;
+        const missed=parseInt(h.rentMissedSince,10);
+        if(Number.isFinite(missed)){
+          h.rentState="awaitingSupplement";
+          h.rentStateYear=missed;
+        }
       }
     }
 
     render();
   });
 
-  rows.addEventListener("click",function(e){
+    rows.addEventListener("click",function(e){
     const btn=e.target.closest("[data-del]");
     if(!btn || !editing)return;
     const i=Number(btn.dataset.del);
