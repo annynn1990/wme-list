@@ -114,5 +114,20 @@ tr.drag-over td{border-top:2px solid #555}
 </div>
 
 <script src="./business.js"></script>
+<script>
+(function(){
+  function fixEmptyText(){
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    let n;
+    while(n=walker.nextNode()){
+      if(n.nodeValue.includes("目前沒有登錄住戶。")){
+        n.nodeValue=n.nodeValue.replaceAll("目前沒有登錄住戶。","目前沒有登錄商戶。");
+      }
+    }
+  }
+  fixEmptyText();
+  new MutationObserver(fixEmptyText).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
