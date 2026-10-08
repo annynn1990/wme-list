@@ -16,6 +16,55 @@ function send(res, body, status = 200) {
   res.end(JSON.stringify(body));
 }
 
+
+function migrateBusinesses(items) {
+  const addressMap = {
+    "黃名帝國中央銀行": "杜泰區商事大街一巷一號",
+    "黃名皇家銀行": "杜泰區商事大街一巷二號",
+    "維多利亞集團": "杜泰區商事大街一巷三號",
+    "德意志飛船公司": "杜泰區商事大街一巷四號",
+    "聯合集團": "杜泰區商事大街一巷五號",
+    "興業銀行": "杜泰區商事大街一巷六號",
+    "Trollyco": "杜泰區商事大街一巷七號",
+    "天官行庫黃名分公司": "杜泰區商事大街一巷八號",
+    "諸羅商行": "杜泰區商事大街一巷九號",
+    "靖康未來事件交易所": "杜泰區商事大街一巷十號",
+    "黃名帝國中央賭場": "杜泰區商事大街二巷一號",
+    "景王銀行": "杜泰區商事大街二巷二號",
+    "哆夢AI工作室": "杜泰區商事大街二巷三號",
+    "華爵集團": "杜泰區商事大街二巷四號"
+  };
+
+  const current = Array.isArray(items) ? items : [];
+  let changed = false;
+
+  for (const item of current) {
+    const next = addressMap[item.name];
+    if (next && item.address !== next) {
+      item.address = next;
+      changed = true;
+    }
+  }
+
+  if (!current.some(item => item.name === "黃名帝國中央賭場")) {
+    current.push({
+      id: Date.now(),
+      name: "黃名帝國中央賭場",
+      address: addressMap["黃名帝國中央賭場"],
+      registrant: "國營事業",
+      year: "2023",
+      rentPaidYear: "",
+      rentSupplementYear: "",
+      rentMissedSince: "",
+      rentState: "",
+      rentStateYear: ""
+    });
+    changed = true;
+  }
+
+  return { items: current, changed };
+}
+
 async function readData() {
   try {
     const result = await get(PATH, { access: "private", useCache: false });
@@ -25,6 +74,20 @@ async function readData() {
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text);
     if (!Array.isArray(parsed.households)) parsed.households = [];
+
+    const migration = migrateBusinesses(parsed.households);
+    parsed.households = migration.items;
+
+    if (migration.changed) {
+      parsed.updatedAt = new Date().toISOString();
+      await put(PATH, JSON.stringify(parsed, null, 2), {
+        access: "private",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        contentType: "application/json"
+      });
+    }
+
     return parsed;
   } catch {
     return { version: 1, updatedAt: new Date().toISOString(), households: [] };
@@ -53,7 +116,7 @@ export default async function handler(req, res) {
       return send(res, { error: "資料格式錯誤" }, 400);
     }
 
-    const households = body.households.map((item, index) => ({
+    let households = body.households.map((item, index) => ({
       id: Number.isFinite(Number(item.id)) ? Number(item.id) : index + 1,
       name: String(item.name ?? "").trim(),
       address: String(item.address ?? "").trim(),
@@ -65,6 +128,8 @@ export default async function handler(req, res) {
       rentState: String(item.rentState ?? "").trim(),
       rentStateYear: String(item.rentStateYear ?? "").trim()
     }));
+
+    households = migrateBusinesses(households).items;
 
     const data = {
       version: 1,
