@@ -107,7 +107,7 @@
 
   function render(){
     if(!data.households.length){
-      rows.innerHTML='<tr><td colspan="8" class="empty">目前沒有登錄住戶。</td></tr>';
+      rows.innerHTML='<tr><td colspan="8" class="empty">目前沒有登錄商戶。</td></tr>';
       return;
     }
 
