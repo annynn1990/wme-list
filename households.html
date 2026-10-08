@@ -52,9 +52,29 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
   table{min-width:820px}
   .wrap{overflow-x:auto}
 }
+.login-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-mask.off{display:none}
+.login-box{width:320px;background:#fff;border:1px solid #888;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:16px}
+.login-title{font-weight:700;font-size:16px;padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid #bbb}
+.login-input{width:100%;box-sizing:border-box;border:1px solid #999;padding:7px;font:inherit}
+.login-buttons{text-align:right;margin-top:12px}
+.login-buttons button{margin-left:5px;padding:5px 10px;border:1px solid #888;background:#f4f4f4;cursor:pointer}
+.login-buttons .login-ok{background:#333;color:#fff;border-color:#333}
+.login-error{color:#b00000;font-size:11px;min-height:15px;margin-top:6px}
 </style>
 </head>
 <body>
+<div id="login-mask" class="login-mask off">
+  <div class="login-box">
+    <div class="login-title">國有土地管理局登入驗證</div>
+    <input id="login-input" class="login-input" type="password" autocomplete="off" placeholder="請輸入管理密碼">
+    <div id="login-error" class="login-error"></div>
+    <div class="login-buttons">
+      <button id="login-cancel" type="button">取消</button>
+      <button id="login-ok" class="login-ok" type="button">登入</button>
+    </div>
+  </div>
+</div>
 <div class="wrap">
   <div class="top">
     <div class="title">國民大街住戶列表 <span id="db-light" class="db-light" title="資料庫連線正常" aria-label="資料庫連線正常"></span></div>
@@ -96,6 +116,11 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
 
   const rows=document.getElementById("rows");
   const dbLight=document.getElementById("db-light");
+  const loginMask=document.getElementById("login-mask");
+  const loginInput=document.getElementById("login-input");
+  const loginError=document.getElementById("login-error");
+  const loginOk=document.getElementById("login-ok");
+  const loginCancel=document.getElementById("login-cancel");
   const lock=document.getElementById("lock");
   const tools=document.getElementById("tools");
   const add=document.getElementById("add");
@@ -239,12 +264,20 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
     }
   });
 
+  function openLogin(){
+    loginMask.classList.remove("off");
+    loginInput.value="";
+    loginError.textContent="";
+    setTimeout(function(){loginInput.focus();},0);
+  }
+
+  function closeLogin(){
+    loginMask.classList.add("off");
+    loginInput.value="";
+    loginError.textContent="";
+  }
+
   function enterEdit(){
-    const pw=prompt("請輸入編輯密碼：");
-    if(pw!==EDIT_PASSWORD){
-      alert("密碼錯誤");
-      return;
-    }
     backup=JSON.parse(JSON.stringify(data));
     editing=true;
     lock.textContent="🔓";
@@ -260,12 +293,29 @@ input.text:focus,input[type=number]:focus{outline:1px solid #555}
     render();
   }
 
+  loginOk.onclick=function(){
+    if(loginInput.value!==EDIT_PASSWORD){
+      loginError.textContent="密碼錯誤";
+      loginInput.focus();
+      return;
+    }
+    closeLogin();
+    enterEdit();
+  };
+
+  loginCancel.onclick=closeLogin;
+
+  loginInput.addEventListener("keydown",function(e){
+    if(e.key==="Enter")loginOk.click();
+    if(e.key==="Escape")closeLogin();
+  });
+
   lock.onclick=function(){
     if(editing){
       exitEdit();
       statusText("", "ok");
     }else{
-      enterEdit();
+      openLogin();
     }
   };
 
