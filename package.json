@@ -2,7 +2,10 @@
   "name": "wme-list",
   "private": true,
   "version": "1.0.0",
-  "dependencies": {
-    "@vercel/blob": "^2.6.1"
+  "scripts": {
+    "start": "node server.cjs"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
