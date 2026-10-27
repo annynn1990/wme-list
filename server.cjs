@@ -1,48 +1,224 @@
 'use strict';
+
 const http = require('node:http');
 const crypto = require('node:crypto');
-const PORT = process.env.PORT || 10000;
+
+const PORT = Number(process.env.PORT || 10000);
 const TOKEN = process.env.GH_WRITE_TOKEN || '';
 const PASSWORD = process.env.EDIT_PASSWORD || '';
-const OWNER = 'annynn1990', REPO = 'wme-list', BRANCH = 'main';
-const FILE = 'data/households-live.json';
-const LEGACY = 'https://wme-list.vercel.app/api/households';
-const CORS = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,PUT,OPTIONS','Access-Control-Allow-Headers':'Content-Type, X-Edit-Password','Cache-Control':'no-store'};
-function send(res, status, obj) { res.writeHead(status, Object.assign({'Content-Type':'application/json; charset=utf-8'},CORS)); res.end(JSON.stringify(obj)); }
-function same(a,b) { if(typeof a!=='string'||!b)return false; const x=Buffer.from(a), y=Buffer.from(b); return x.length===y.length && crypto.timingSafeEqual(x,y); }
-function apiUrl(){ return 'https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+FILE; }
-function headers(){ const h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'wme-households-api'}; if(TOKEN)h.Authorization='Bearer '+TOKEN; return h; }
-async function readGitHub(){
- const r=await fetch(apiUrl()+'?ref='+BRANCH,{headers:headers()});
- if(r.status===404)return null;
- if(!r.ok)throw new Error('GitHub read failed ('+r.status+')');
- const j=await r.json(); return {data:JSON.parse(Buffer.from(j.content.replace(/\\s/g,''),'base64').toString('utf8')),sha:j.sha};
+const OWNER = process.env.GITHUB_OWNER || 'annynn1990';
+const REPO = process.env.GITHUB_REPO || 'wme-list';
+const BRANCH = process.env.GITHUB_BRANCH || 'main';
+const FILE = process.env.GITHUB_DATA_PATH || 'data/households-live.json';
+const LEGACY_URL = process.env.LEGACY_IMPORT_URL || 'https://wme-list.vercel.app/api/households';
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Password',
+  'Cache-Control': 'no-store'
+};
+
+function send(res, status, data) {
+  res.writeHead(status, Object.assign({
+    'Content-Type': 'application/json; charset=utf-8'
+  }, CORS));
+  res.end(JSON.stringify(data));
 }
-async function readData(){
- const saved=await readGitHub(); if(saved)return saved.data;
- const r=await fetch(LEGACY,{cache:'no-store',signal:AbortSignal.timeout(15000)});
- if(!r.ok)throw new Error('Could not read existing household data');
- const d=await r.json(); if(!Array.isArray(d.households))throw new Error('Invalid household data'); return d;
+
+function passwordMatches(candidate) {
+  if (!PASSWORD || typeof candidate !== 'string') return false;
+  const a = Buffer.from(candidate, 'utf8');
+  const b = Buffer.from(PASSWORD, 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
-async function writeData(data){
- if(!TOKEN)throw new Error('GitHub write token is not configured');
- const old=await readGitHub();
- const payload={message:'Update household directory data',branch:BRANCH,content:Buffer.from(JSON.stringify(data,null,2)+'\\n').toString('base64')};
- if(old&&old.sha)payload.sha=old.sha;
- const r=await fetch(apiUrl(),{method:'PUT',headers:Object.assign(headers(),{'Content-Type':'application/json'}),body:JSON.stringify(payload)});
- if(!r.ok)throw new Error('GitHub save failed ('+r.status+')');
+
+function githubHeaders(json) {
+  const h = {
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'wme-households-api'
+  };
+  if (TOKEN) h.Authorization = 'Bearer ' + TOKEN;
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
 }
-async function body(req){let s='';for await(const c of req){s+=c;if(s.length>2e6)throw new Error('Request too large');}return JSON.parse(s||'{}');}
-const server=http.createServer(async(req,res)=>{
- const url=new URL(req.url,'http://localhost');
- if(req.method==='OPTIONS')return send(res,204,{});
- if(url.pathname==='/health')return send(res,200,{ok:true,githubReady:!!TOKEN,passwordReady:!!PASSWORD});
- if(url.pathname!=='/api/households')return send(res,404,{error:'Not Found'});
- try{
-  if(req.method==='GET')return send(res,200,await readData());
-  if(req.method==='POST'){const b=await body(req);return same(b.password,PASSWORD)?send(res,200,{ok:true}):send(res,403,{error:'密碼錯誤'});}
-  if(req.method==='PUT'){if(!same(req.headers['x-edit-password'],PASSWORD))return send(res,403,{error:'未授權'});const d=await body(req);if(!d||!Array.isArray(d.households))return send(res,400,{error:'資料格式錯誤'});d.updatedAt=new Date().toISOString();await writeData(d);return send(res,200,d);}
-  res.setHeader('Allow','GET,POST,PUT,OPTIONS');return send(res,405,{error:'Method Not Allowed'});
- }catch(e){return send(res,500,{error:e.message||'伺服器錯誤'});}
+
+function contentsUrl(withRef) {
+  const path = FILE.split('/').map(encodeURIComponent).join('/');
+  let url = 'https://api.github.com/repos/' + encodeURIComponent(OWNER) + '/' +
+    encodeURIComponent(REPO) + '/contents/' + path;
+  if (withRef) url += '?ref=' + encodeURIComponent(BRANCH);
+  return url;
+}
+
+async function readGitHubSnapshot() {
+  const r = await fetch(contentsUrl(true), {
+    headers: githubHeaders(false),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('GitHub 讀取失敗（HTTP ' + r.status + '）');
+  const item = await r.json();
+  if (!item || typeof item.content !== 'string') throw new Error('GitHub 資料檔格式錯誤');
+  const raw = Buffer.from(item.content.replace(/\s/g, ''), 'base64').toString('utf8');
+  const data = JSON.parse(raw);
+  if (!Array.isArray(data.households)) throw new Error('GitHub 資料檔缺少住戶清單');
+  return { data: data, sha: item.sha };
+}
+
+async function readLegacyData() {
+  const r = await fetch(LEGACY_URL, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(20000)
+  });
+  if (!r.ok) throw new Error('原有住戶資料來源讀取失敗（HTTP ' + r.status + '）');
+  const data = await r.json();
+  if (!data || !Array.isArray(data.households)) throw new Error('原有住戶資料格式錯誤');
+  return data;
+}
+
+async function writeGitHubSnapshot(data, message) {
+  if (!TOKEN) {
+    const e = new Error('GitHub 寫入憑證尚未設定，資料未儲存。');
+    e.statusCode = 503;
+    throw e;
+  }
+
+  const existing = await readGitHubSnapshot();
+  const payload = {
+    message: message || 'Update household directory data',
+    branch: BRANCH,
+    content: Buffer.from(JSON.stringify(data, null, 2) + '\n', 'utf8').toString('base64')
+  };
+  if (existing && existing.sha) payload.sha = existing.sha;
+
+  const r = await fetch(contentsUrl(false), {
+    method: 'PUT',
+    headers: githubHeaders(true),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(20000)
+  });
+  if (!r.ok) {
+    const detail = (await r.text().catch(() => '')).slice(0, 220);
+    const e = new Error('GitHub 儲存失敗（HTTP ' + r.status + '）' + detail);
+    e.statusCode = r.status === 409 || r.status === 422 ? 409 : 502;
+    throw e;
+  }
+}
+
+async function getData() {
+  const saved = await readGitHubSnapshot();
+  if (saved) return saved.data;
+
+  // 初次讀取從舊 API 載入，不會回傳空名單覆蓋既有資料。
+  const legacy = await readLegacyData();
+
+  // 設好 GitHub 憑證後，第一次 GET 會自動建立新資料檔。
+  if (TOKEN) {
+    const data = Object.assign({}, legacy, {
+      version: 3,
+      updatedAt: legacy.updatedAt || new Date().toISOString()
+    });
+    await writeGitHubSnapshot(data, 'Import existing household directory');
+    return data;
+  }
+  return legacy;
+}
+
+async function readBody(req) {
+  let size = 0;
+  const chunks = [];
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 2 * 1024 * 1024) {
+      const e = new Error('資料過大');
+      e.statusCode = 413;
+      throw e;
+    }
+    chunks.push(chunk);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch (_) {
+    const e = new Error('JSON 格式錯誤');
+    e.statusCode = 400;
+    throw e;
+  }
+}
+
+function normalizeData(input) {
+  if (!input || !Array.isArray(input.households)) {
+    const e = new Error('資料格式錯誤');
+    e.statusCode = 400;
+    throw e;
+  }
+
+  const households = input.households.map(function (item, index) {
+    return {
+      id: Number.isFinite(Number(item.id)) ? Number(item.id) : index + 1,
+      name: String(item.name == null ? '' : item.name).trim(),
+      address: String(item.address == null ? '' : item.address).trim(),
+      registrant: String(item.registrant == null ? '' : item.registrant).trim(),
+      year: String(item.year == null ? '' : item.year).trim(),
+      rentPaidYear: String(item.rentPaidYear == null ? '' : item.rentPaidYear).trim(),
+      rentSupplementYear: String(item.rentSupplementYear == null ? '' : item.rentSupplementYear).trim(),
+      rentMissedSince: String(item.rentMissedSince == null ? '' : item.rentMissedSince).trim(),
+      rentState: String(item.rentState == null ? '' : item.rentState).trim(),
+      rentStateYear: String(item.rentStateYear == null ? '' : item.rentStateYear).trim()
+    };
+  });
+
+  return {
+    version: 3,
+    updatedAt: new Date().toISOString(),
+    households: households
+  };
+}
+
+const server = http.createServer(async function (req, res) {
+  const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
+
+  if (req.method === 'OPTIONS') return send(res, 204, {});
+  if (url.pathname === '/health') {
+    return send(res, 200, {
+      ok: true,
+      githubWriteConfigured: Boolean(TOKEN),
+      editPasswordConfigured: Boolean(PASSWORD)
+    });
+  }
+  if (url.pathname !== '/api/households') return send(res, 404, { error: 'Not Found' });
+
+  try {
+    if (req.method === 'GET') {
+      return send(res, 200, await getData());
+    }
+
+    if (req.method === 'POST') {
+      const body = await readBody(req);
+      if (body.action !== 'verify') return send(res, 400, { error: '未知操作' });
+      if (!passwordMatches(body.password)) return send(res, 403, { error: '密碼錯誤或管理密碼尚未設定' });
+      return send(res, 200, { ok: true });
+    }
+
+    if (req.method === 'PUT') {
+      if (!passwordMatches(req.headers['x-edit-password'])) {
+        return send(res, 403, { error: '未授權' });
+      }
+      const data = normalizeData(await readBody(req));
+      await writeGitHubSnapshot(data, 'Update household directory');
+      return send(res, 200, data);
+    }
+
+    res.setHeader('Allow', 'GET,POST,PUT,OPTIONS');
+    return send(res, 405, { error: 'Method Not Allowed' });
+  } catch (error) {
+    return send(res, error.statusCode || 502, {
+      error: error.message || '住戶資料服務發生錯誤'
+    });
+  }
 });
-server.listen(PORT,'0.0.0.0',()=>console.log('Household API listening on '+PORT));
+
+server.listen(PORT, '0.0.0.0', function () {
+  console.log('wme-households-api listening on ' + PORT);
+});
