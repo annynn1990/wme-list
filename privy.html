@@ -218,6 +218,112 @@ body{
     50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.6)}
 }
 
+
+#privy-app .privy-edit-tools{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+    margin:-8px 0 16px;
+    border:1px solid #d4af37;
+    background:#fbf8ff;
+    color:#4b0082;
+    font-size:13px;
+}
+#privy-app .privy-edit-tools[hidden]{display:none!important}
+#privy-app .privy-edit-tools button{
+    border:1px solid #4b0082;
+    border-radius:4px;
+    padding:6px 12px;
+    margin-left:6px;
+    background:#4b0082;
+    color:#fff;
+    cursor:pointer;
+    font:inherit;
+}
+#privy-app .privy-edit-tools button:last-child{
+    background:#fff;
+    color:#4b0082;
+}
+#privy-app .privy-edit-tools button:disabled{
+    opacity:.55;
+    cursor:wait;
+}
+.privy-auth-modal{
+    position:fixed;
+    inset:0;
+    z-index:100000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(0,0,0,.48);
+}
+.privy-auth-modal[hidden]{display:none!important}
+.privy-auth-card{
+    width:min(440px,100%);
+    padding:22px;
+    border:1px solid #a2a9b1;
+    border-top:4px solid #4b0082;
+    border-radius:6px;
+    background:#fff;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);
+    font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+}
+.privy-auth-title{
+    margin-bottom:16px;
+    color:#4b0082;
+    font-size:19px;
+    font-weight:bold;
+}
+.privy-auth-label{
+    display:block;
+    margin:12px 0 5px;
+    font-size:13px;
+    font-weight:bold;
+}
+.privy-auth-input{
+    display:block;
+    width:100%;
+    padding:10px;
+    border:1px solid #a2a9b1;
+    border-radius:4px;
+    font:inherit;
+}
+.privy-auth-help{
+    margin-top:10px;
+    color:#666;
+    font-size:12px;
+    line-height:1.55;
+}
+.privy-auth-error{
+    min-height:20px;
+    margin-top:8px;
+    color:#c0392b;
+    font-size:12px;
+}
+.privy-auth-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:12px;
+}
+.privy-auth-actions button{
+    border:1px solid #4b0082;
+    border-radius:4px;
+    padding:8px 13px;
+    background:#fff;
+    color:#4b0082;
+    cursor:pointer;
+    font:inherit;
+}
+.privy-auth-actions button:last-child{
+    background:#4b0082;
+    color:#fff;
+}
+.privy-auth-actions button:disabled{opacity:.55;cursor:wait}
+
 @media(max-width:700px){
     #privy-app{
         margin:0;
@@ -253,6 +359,14 @@ body{
         <div class="subtitle editable-field">Privy Council — List of Imperial Secretarial Officials</div>
     </div>
 
+    <div class="privy-edit-tools" id="privy-edit-tools" hidden>
+        <span>編輯模式：修改完成後提交至 GitHub</span>
+        <div>
+            <button type="button" id="privy-save-button">提交至 GitHub</button>
+            <button type="button" id="privy-cancel-button">取消修改</button>
+        </div>
+    </div>
+
     <div class="table-scroll">
         <table class="wm-wiki-table">
             <thead>
@@ -284,11 +398,15 @@ body{
     const status=document.getElementById('privy-sync-status');
     const header=document.getElementById('privy-header-area');
     const footer=document.getElementById('privy-footer-text');
-    const API='https://wme-list.vercel.app/api/privy';
-    const EDIT_PASSWORD='1111';
-    let saveTimer=null;
-    let saveInProgress=false;
-    let saveQueued=false;
+
+    const GH_API='https://api.github.com/repos/annynn1990/wme-list/contents/data.json';
+    const GH_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/data.json';
+    const GH_BRANCH='main';
+    const ADMIN_PASSWORD='1111';
+
+    let githubToken='';
+    let editing=false;
+    let backup=null;
 
     const INITIAL_HTML="<tr><th colspan=\"5\" class=\"wm-privy-banner\">院領導核心 (The High Council)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/02_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>大司憲</b></td>\n<td><span class=\"wm-p-rank wm-p-rank-high\">Rank 1</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">李迎希</td>\n<td class=\"col-txt\">首席秘書官；兼任選舉委員會主席</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/01/90_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>二司憲</b></td>\n<td><span class=\"wm-p-rank\">Rank 2</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">白敖</td>\n<td class=\"col-txt\">副秘書長</td>\n</tr>\n<tr><th colspan=\"5\" class=\"wm-privy-banner\">下設處室與司局 (Departments & Bureaus)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">制司處處長<br><small>（司制）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管詔書制作</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/03/33_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">受憲處處長<br><small>（司典）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">夏侯昜</td>\n<td class=\"col-txt\">掌管典章憲制</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/89_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">檔案處處長<br><small>（司吏）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">小羽</td>\n<td class=\"col-txt\">掌管皇家檔案與吏事</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/28_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">司政處處長<br><small>（司政）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">仲尼</td>\n<td class=\"col-txt\">掌管行政文書</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/11_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">律令司<br><small>（司律）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">路德維希</td>\n<td class=\"col-txt\">掌管皇室律令</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">宗正司</td>\n<td><span class=\"wm-p-rank\">Rank 5</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管宗室事務</td>\n</tr>";
 
@@ -308,88 +426,47 @@ body{
         });
     }
 
-    function sanitizedHTML(element){
+    function safeHTML(element){
         const copy=element.cloneNode(true);
-
-        function clearEditState(node){
-            if(node.nodeType!==1) return;
+        copy.removeAttribute('contenteditable');
+        copy.removeAttribute('data-edit-enabled');
+        copy.removeAttribute('spellcheck');
+        copy.querySelectorAll('[contenteditable],[data-edit-enabled],[spellcheck]').forEach(function(node){
             node.removeAttribute('contenteditable');
             node.removeAttribute('data-edit-enabled');
             node.removeAttribute('spellcheck');
-            if(node.classList && node.classList.contains('wm-portrait-box')){
-                node.classList.remove('editable');
-            }
-            node.querySelectorAll('[contenteditable],[data-edit-enabled]').forEach(function(child){
-                child.removeAttribute('contenteditable');
-                child.removeAttribute('data-edit-enabled');
-                child.removeAttribute('spellcheck');
-            });
-            node.querySelectorAll('.wm-portrait-box.editable').forEach(function(box){
-                box.classList.remove('editable');
-            });
-        }
-
-        clearEditState(copy);
+        });
+        copy.querySelectorAll('.wm-portrait-box.editable').forEach(function(node){
+            node.classList.remove('editable');
+        });
         return copy.innerHTML;
     }
 
-    function lockDownEditing(){
-        app.classList.remove('is-editing');
-        app.removeAttribute('contenteditable');
-        app.querySelectorAll('[contenteditable],[data-edit-enabled]').forEach(function(el){
-            el.removeAttribute('contenteditable');
-            el.removeAttribute('data-edit-enabled');
-            el.removeAttribute('spellcheck');
-        });
-        app.querySelectorAll('.wm-portrait-box.editable').forEach(function(box){
-            box.classList.remove('editable');
-        });
-    }
-
-    function snapshot(){
+    function getSnapshot(){
         return {
-            header:sanitizedHTML(header),
-            table:sanitizedHTML(tb),
-            footer:sanitizedHTML(footer)
+            header:safeHTML(header),
+            table:safeHTML(tb),
+            footer:safeHTML(footer)
         };
     }
 
-    async function saveCloud(){
-        if(!app.classList.contains('is-editing')) return;
-        if(saveInProgress){
-            saveQueued=true;
-            return;
-        }
-        saveInProgress=true;
-        setStatus('正在儲存雲端資料','loading');
-
-        try{
-            const response=await fetch(API,{
-                method:'PUT',
-                headers:{
-                    'Content-Type':'application/json',
-                    'X-Edit-Password':EDIT_PASSWORD
-                },
-                body:JSON.stringify({savedData:snapshot()})
-            });
-            const result=await response.json();
-            if(!response.ok) throw new Error(result.error||('HTTP '+response.status));
-            setStatus('雲端同步成功','online');
-        }catch(error){
-            setStatus('雲端儲存失敗：'+error.message,'error');
-        }finally{
-            saveInProgress=false;
-            if(saveQueued){
-                saveQueued=false;
-                saveCloud();
-            }
-        }
+    function lockDownEditing(){
+        editing=false;
+        app.classList.remove('is-editing');
+        app.querySelectorAll('[contenteditable],[data-edit-enabled],[spellcheck]').forEach(function(node){
+            node.removeAttribute('contenteditable');
+            node.removeAttribute('data-edit-enabled');
+            node.removeAttribute('spellcheck');
+        });
+        app.querySelectorAll('.wm-portrait-box.editable').forEach(function(node){
+            node.classList.remove('editable');
+        });
+        const tools=document.getElementById('privy-edit-tools');
+        if(tools) tools.hidden=true;
     }
 
-    function scheduleSave(){
-        setStatus('有未儲存的修改','loading');
-        if(saveTimer) clearTimeout(saveTimer);
-        saveTimer=setTimeout(saveCloud,700);
+    function markDirty(){
+        if(editing) setStatus('有尚未提交的修改','loading');
     }
 
     function makeEditable(el){
@@ -406,15 +483,20 @@ body{
                     el.classList.remove('empty-vacancy');
                 }
             }
-            scheduleSave();
+            markDirty();
         });
-        el.addEventListener('blur',scheduleSave);
     }
 
     function enableEditing(){
-        if(app.classList.contains('is-editing')) return;
+        if(editing) return;
+        backup={
+            header:header.innerHTML,
+            table:tb.innerHTML,
+            footer:footer.innerHTML
+        };
+        editing=true;
         app.classList.add('is-editing');
-        cleanEmptyNames();
+
         app.querySelectorAll('.editable-field').forEach(makeEditable);
         app.querySelectorAll('.wm-wiki-table th').forEach(makeEditable);
         app.querySelectorAll('.wm-wiki-table td.col-txt').forEach(makeEditable);
@@ -423,15 +505,234 @@ body{
         tb.querySelectorAll('.wm-portrait-box').forEach(function(box){
             box.classList.add('editable');
         });
-        setStatus('編輯模式已啟動','online');
+
+        const tools=document.getElementById('privy-edit-tools');
+        if(tools) tools.hidden=false;
+        setStatus('編輯模式已啟動；完成後請按「提交至 GitHub」','online');
+    }
+
+    function setBackup(){
+        if(!backup) return;
+        header.innerHTML=backup.header;
+        tb.innerHTML=backup.table;
+        footer.innerHTML=backup.footer;
+        cleanEmptyNames();
+    }
+
+    function closeEditing(){
+        lockDownEditing();
+        githubToken='';
+        backup=null;
+    }
+
+    function createAuthModal(){
+        let modal=document.getElementById('privy-auth-modal');
+        if(modal) return modal;
+
+        modal=document.createElement('div');
+        modal.id='privy-auth-modal';
+        modal.className='privy-auth-modal';
+        modal.hidden=true;
+        modal.innerHTML=
+            '<div class="privy-auth-card" role="dialog" aria-modal="true" aria-labelledby="privy-auth-title">'+
+                '<div class="privy-auth-title" id="privy-auth-title">司憲院管理員驗證</div>'+
+                '<label class="privy-auth-label" for="privy-admin-password">管理密碼</label>'+
+                '<input class="privy-auth-input" id="privy-admin-password" type="password" autocomplete="off" placeholder="輸入管理密碼">'+
+                '<label class="privy-auth-label" for="privy-github-token">GitHub Fine-grained Token</label>'+
+                '<input class="privy-auth-input" id="privy-github-token" type="password" autocomplete="off" placeholder="github_pat_...">'+
+                '<div class="privy-auth-help">Token 僅用於本次頁面工作階段，不會寫入瀏覽器儲存。請只授權 annynn1990/wme-list，並設定 Contents: Read and write。</div>'+
+                '<div class="privy-auth-error" id="privy-auth-error"></div>'+
+                '<div class="privy-auth-actions">'+
+                    '<button type="button" id="privy-auth-cancel">取消</button>'+
+                    '<button type="button" id="privy-auth-submit">驗證並編輯</button>'+
+                '</div>'+
+            '</div>';
+
+        document.body.appendChild(modal);
+
+        const passwordInput=modal.querySelector('#privy-admin-password');
+        const tokenInput=modal.querySelector('#privy-github-token');
+        const error=modal.querySelector('#privy-auth-error');
+
+        modal.querySelector('#privy-auth-cancel').addEventListener('click',function(){
+            modal.hidden=true;
+            passwordInput.value='';
+            tokenInput.value='';
+            error.textContent='';
+        });
+
+        modal.querySelector('#privy-auth-submit').addEventListener('click',async function(){
+            const password=passwordInput.value;
+            const token=tokenInput.value.trim();
+
+            if(password!==ADMIN_PASSWORD){
+                error.textContent='管理密碼錯誤。';
+                return;
+            }
+            if(!token){
+                error.textContent='請輸入 GitHub Fine-grained Token。';
+                return;
+            }
+
+            const button=modal.querySelector('#privy-auth-submit');
+            button.disabled=true;
+            error.textContent='正在驗證 GitHub 權限……';
+
+            try{
+                await verifyGitHubToken(token);
+                githubToken=token;
+                modal.hidden=true;
+                passwordInput.value='';
+                tokenInput.value='';
+                error.textContent='';
+                enableEditing();
+            }catch(e){
+                error.textContent=e.message||'GitHub Token 驗證失敗。';
+            }finally{
+                button.disabled=false;
+            }
+        });
+
+        modal.addEventListener('keydown',function(e){
+            if(e.key==='Escape'){
+                modal.hidden=true;
+                passwordInput.value='';
+                tokenInput.value='';
+                error.textContent='';
+            }
+            if(e.key==='Enter' && e.target.tagName==='INPUT'){
+                modal.querySelector('#privy-auth-submit').click();
+            }
+        });
+
+        return modal;
+    }
+
+    function githubHeaders(token){
+        return {
+            'Accept':'application/vnd.github+json',
+            'Authorization':'Bearer '+token,
+            'X-GitHub-Api-Version':'2022-11-28'
+        };
+    }
+
+    async function verifyGitHubToken(token){
+        const response=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
+            method:'GET',
+            headers:githubHeaders(token),
+            cache:'no-store'
+        });
+
+        if(response.status===401) throw new Error('GitHub Token 無效或已過期。');
+        if(response.status===403) throw new Error('GitHub 拒絕存取。請確認 Token 已授權此 repository 的 Contents 讀寫權限。');
+        if(response.status===404) throw new Error('Token 無法讀取 annynn1990/wme-list/data.json，請確認 Repository access 設定。');
+        if(!response.ok) throw new Error('GitHub 驗證失敗（HTTP '+response.status+'）。');
+
+        const file=await response.json();
+        if(!file.sha) throw new Error('GitHub 未回傳檔案版本資訊。');
+        return file;
+    }
+
+    function decodeBase64Utf8(value){
+        const binary=atob(value.replace(/\s/g,''));
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function encodeBase64Utf8(value){
+        const bytes=new TextEncoder().encode(value);
+        let binary='';
+        const chunkSize=0x8000;
+        for(let i=0;i<bytes.length;i+=chunkSize){
+            binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
+        }
+        return btoa(binary);
+    }
+
+    async function saveToGitHub(){
+        if(!editing || !githubToken) return;
+
+        const saveButton=document.getElementById('privy-save-button');
+        if(saveButton) saveButton.disabled=true;
+        setStatus('正在提交至 GitHub main 分支……','loading');
+
+        try{
+            // 先取得最新 SHA，避免使用舊版本覆蓋其他人的提交。
+            const currentResponse=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
+                method:'GET',
+                headers:githubHeaders(githubToken),
+                cache:'no-store'
+            });
+
+            if(!currentResponse.ok){
+                const message=currentResponse.status===401?'GitHub Token 已失效。':
+                    currentResponse.status===403?'GitHub 拒絕寫入，請確認 Contents: Read and write 權限。':
+                    '無法取得 GitHub 最新檔案版本（HTTP '+currentResponse.status+'）。';
+                throw new Error(message);
+            }
+
+            const currentFile=await currentResponse.json();
+            const currentData=JSON.parse(decodeBase64Utf8(currentFile.content||''));
+            const savedData=getSnapshot();
+
+            currentData.version=currentData.version||1;
+            currentData.updatedAt=new Date().toISOString();
+            currentData.savedHTML=savedData.table; // 相容原有 savedHTML 資料格式
+            currentData.savedData=savedData;       // 同步保存標題、表格、頁尾
+
+            const writeResponse=await fetch(GH_API,{
+                method:'PUT',
+                headers:Object.assign({'Content-Type':'application/json'},githubHeaders(githubToken)),
+                body:JSON.stringify({
+                    message:'Update Privy Council officials',
+                    content:encodeBase64Utf8(JSON.stringify(currentData,null,2)+'\n'),
+                    sha:currentFile.sha,
+                    branch:GH_BRANCH
+                })
+            });
+
+            const writeResult=await writeResponse.json();
+            if(!writeResponse.ok){
+                if(writeResponse.status===409 || writeResponse.status===422){
+                    throw new Error('GitHub 檔案已被其他修改更新，請重新載入頁面後再編輯，避免覆蓋新資料。');
+                }
+                throw new Error(writeResult.message||('GitHub 提交失敗（HTTP '+writeResponse.status+'）。'));
+            }
+
+            closeEditing();
+            setStatus('已成功提交至 GitHub main 分支','online');
+        }catch(e){
+            setStatus('GitHub 提交失敗：'+e.message,'error');
+            alert(e.message);
+        }finally{
+            if(saveButton) saveButton.disabled=false;
+        }
+    }
+
+    function cancelEditing(){
+        if(!editing) return;
+        if(!confirm('放棄本次尚未提交的修改？')) return;
+        setBackup();
+        closeEditing();
+        setStatus('已取消修改','online');
+    }
+
+    function bindToolbar(){
+        const saveButton=document.getElementById('privy-save-button');
+        const cancelButton=document.getElementById('privy-cancel-button');
+        if(saveButton) saveButton.addEventListener('click',saveToGitHub);
+        if(cancelButton) cancelButton.addEventListener('click',cancelEditing);
     }
 
     tb.addEventListener('click',function(e){
-        if(!app.classList.contains('is-editing')) return;
+        if(!editing) return;
         const box=e.target.closest('.wm-portrait-box');
         if(!box) return;
+
         const url=prompt('輸入新肖像網址：');
         if(!url) return;
+
         try{
             const parsed=new URL(url.trim());
             if(parsed.protocol!=='https:' && parsed.protocol!=='http:'){
@@ -443,63 +744,50 @@ body{
             img.className='wm-portrait-img';
             img.alt='官員肖像';
             box.replaceChildren(img);
-            scheduleSave();
-        }catch(error){
+            markDirty();
+        }catch(e){
             alert('圖片網址格式不正確。');
         }
     });
 
-    async function verifyPassword(password){
-        const response=await fetch(API,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({action:'verify',password:password})
-        });
-        const result=await response.json();
-        if(!response.ok) throw new Error(result.error||'管理密碼驗證失敗');
-        return true;
-    }
-
     async function loadData(){
-        setStatus('正在讀取雲端資料','loading');
+        setStatus('正在讀取 GitHub 資料','loading');
         try{
-            const response=await fetch(API,{cache:'no-store'});
-            const result=await response.json();
-            if(!response.ok) throw new Error(result.error||('HTTP '+response.status));
+            const response=await fetch(GH_RAW+'?ts='+Date.now(),{cache:'no-store'});
+            if(!response.ok) throw new Error('GitHub data.json 讀取失敗（HTTP '+response.status+'）。');
 
-            if(result.savedData){
-                if(typeof result.savedData.header==='string') header.innerHTML=result.savedData.header;
-                tb.innerHTML=result.savedData.table;
-                if(typeof result.savedData.footer==='string') footer.innerHTML=result.savedData.footer;
-            }else if(typeof result.savedHTML==='string'){
-                tb.innerHTML=result.savedHTML;
+            const data=await response.json();
+            if(data.savedData){
+                if(typeof data.savedData.header==='string') header.innerHTML=data.savedData.header;
+                if(typeof data.savedData.table==='string') tb.innerHTML=data.savedData.table;
+                if(typeof data.savedData.footer==='string') footer.innerHTML=data.savedData.footer;
+            }else if(typeof data.savedHTML==='string'){
+                tb.innerHTML=data.savedHTML;
             }else{
-                throw new Error('雲端資料格式錯誤');
+                throw new Error('data.json 缺少 savedHTML。');
             }
 
-            // 雲端內容只保存資料，不允許帶入可編輯狀態。
             lockDownEditing();
             cleanEmptyNames();
-            setStatus('雲端資料讀取成功','online');
-        }catch(error){
+            setStatus('GitHub 資料讀取成功','online');
+        }catch(e){
             tb.innerHTML=INITIAL_HTML;
+            lockDownEditing();
             cleanEmptyNames();
-            setStatus('雲端讀取失敗：'+error.message,'error');
+            setStatus('GitHub 讀取失敗：'+e.message,'error');
         }
     }
 
-    document.getElementById('privy-edit-trigger').onclick=async function(){
-        const password=prompt('管理員驗證：');
-        if(password===null) return;
-        try{
-            await verifyPassword(password);
-            enableEditing();
-            alert('司憲院職官表編輯功能已啟動，修改將直接同步至雲端。');
-        }catch(error){
-            alert(error.message);
-        }
-    };
+    const editTrigger=document.getElementById('privy-edit-trigger');
+    editTrigger.addEventListener('click',function(){
+        if(editing) return;
+        const modal=createAuthModal();
+        modal.hidden=false;
+        const passwordInput=modal.querySelector('#privy-admin-password');
+        setTimeout(function(){passwordInput.focus();},0);
+    });
 
+    bindToolbar();
     loadData();
 })();
 </script>
