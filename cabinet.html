@@ -805,7 +805,7 @@ body{
     });
 
     async function loadData(){
-        setStatus('正在讀取 GitHub 資料','loading');
+        setStatus('讀取中','loading');
         try{
             const response=await fetch(GH_RAW+'?ts='+Date.now(),{cache:'no-store'});
             if(!response.ok) throw new Error('GitHub cabinet.json 讀取失敗（HTTP '+response.status+'）。');
