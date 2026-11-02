@@ -213,8 +213,6 @@ body{
 #privy-app #privy-sync-status.loading{color:#d4af37!important}
 #privy-app #privy-sync-status.error{color:#e74c3c!important}
 #privy-app #privy-sync-status.local{color:#7f8c8d!important}
-#privy-app #privy-sync-status.online:after{content:"在線中";margin-left:6px;padding-left:8px;border-left:1px solid currentColor;font-weight:800}
-#privy-app #privy-sync-status.error:after{content:"離線中";margin-left:6px;padding-left:8px;border-left:1px solid currentColor;font-weight:800}
 @keyframes privy-green-breathe{
     0%,100%{opacity:.55;box-shadow:0 0 4px currentColor,0 0 8px rgba(39,174,96,.25)}
     50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.6)}
@@ -468,7 +466,7 @@ body{
     }
 
     function markDirty(){
-        if(editing) setStatus('有尚未提交的修改','loading');
+        if(editing) setStatus('正在讀取資料','loading');
     }
 
     function makeEditable(el){
@@ -510,7 +508,7 @@ body{
 
         const tools=document.getElementById('privy-edit-tools');
         if(tools) tools.hidden=false;
-        setStatus('編輯模式已啟動；完成後請按「提交至 GitHub」','online');
+        setStatus('在線中','online');
     }
 
     function setBackup(){
@@ -703,9 +701,9 @@ body{
             }
 
             closeEditing();
-            setStatus('已成功提交至 GitHub main 分支','online');
+            setStatus('在線中','online');
         }catch(e){
-            setStatus('GitHub 提交失敗：'+e.message,'error');
+            setStatus('離線中','error');
             alert(e.message);
         }finally{
             if(saveButton) saveButton.disabled=false;
@@ -717,7 +715,7 @@ body{
         if(!confirm('放棄本次尚未提交的修改？')) return;
         setBackup();
         closeEditing();
-        setStatus('已取消修改','online');
+        setStatus('在線中','online');
     }
 
     function bindToolbar(){
@@ -771,12 +769,12 @@ body{
 
             lockDownEditing();
             cleanEmptyNames();
-            setStatus('GitHub 資料讀取成功','online');
+            setStatus('在線中','online');
         }catch(e){
             tb.innerHTML=INITIAL_HTML;
             lockDownEditing();
             cleanEmptyNames();
-            setStatus('GitHub 讀取失敗：'+e.message,'error');
+            setStatus('離線中','error');
         }
     }
 
