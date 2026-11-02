@@ -308,11 +308,49 @@ body{
         });
     }
 
+    function sanitizedHTML(element){
+        const copy=element.cloneNode(true);
+
+        function clearEditState(node){
+            if(node.nodeType!==1) return;
+            node.removeAttribute('contenteditable');
+            node.removeAttribute('data-edit-enabled');
+            node.removeAttribute('spellcheck');
+            if(node.classList && node.classList.contains('wm-portrait-box')){
+                node.classList.remove('editable');
+            }
+            node.querySelectorAll('[contenteditable],[data-edit-enabled]').forEach(function(child){
+                child.removeAttribute('contenteditable');
+                child.removeAttribute('data-edit-enabled');
+                child.removeAttribute('spellcheck');
+            });
+            node.querySelectorAll('.wm-portrait-box.editable').forEach(function(box){
+                box.classList.remove('editable');
+            });
+        }
+
+        clearEditState(copy);
+        return copy.innerHTML;
+    }
+
+    function lockDownEditing(){
+        app.classList.remove('is-editing');
+        app.removeAttribute('contenteditable');
+        app.querySelectorAll('[contenteditable],[data-edit-enabled]').forEach(function(el){
+            el.removeAttribute('contenteditable');
+            el.removeAttribute('data-edit-enabled');
+            el.removeAttribute('spellcheck');
+        });
+        app.querySelectorAll('.wm-portrait-box.editable').forEach(function(box){
+            box.classList.remove('editable');
+        });
+    }
+
     function snapshot(){
         return {
-            header:header.innerHTML,
-            table:tb.innerHTML,
-            footer:footer.innerHTML
+            header:sanitizedHTML(header),
+            table:sanitizedHTML(tb),
+            footer:sanitizedHTML(footer)
         };
     }
 
@@ -438,6 +476,9 @@ body{
             }else{
                 throw new Error('雲端資料格式錯誤');
             }
+
+            // 雲端內容只保存資料，不允許帶入可編輯狀態。
+            lockDownEditing();
             cleanEmptyNames();
             setStatus('雲端資料讀取成功','online');
         }catch(error){
