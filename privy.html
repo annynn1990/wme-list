@@ -787,17 +787,16 @@ body{
         setTimeout(function(){passwordInput.focus();},0);
     });
 
-    // iframe 嵌入支援：回報實際頁面高度，讓論壇端自動調整框架。
+    // iframe 嵌入支援：只回報內容本身高度，不把 iframe 視窗高度算進去。
     function notifyEmbedHeight(){
         if(window.parent===window) return;
-        const height=Math.ceil(Math.max(
-            document.documentElement.scrollHeight,
-            document.body.scrollHeight,
-            app.scrollHeight
-        ));
+        const rect=app.getBoundingClientRect();
+        const style=window.getComputedStyle(app);
+        const marginBottom=parseFloat(style.marginBottom)||0;
+        const height=Math.ceil(rect.bottom+window.scrollY+marginBottom);
         window.parent.postMessage({
             type:'wme-privy-embed-height',
-            height:height
+            height:Math.max(height,1)
         },'*');
     }
 
