@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第三十二屆內閣政府職官表</title>
+<style>
+:root{
+    --cabinet-purple:#1a365d;
+    --cabinet-gold:#d4af37;
+    --cabinet-border:#a2a9b1;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+    background:#f5f5f5;
+    color:#202122;
+    font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+}
+#cabinet-app{
+    max-width:1000px;
+    margin:20px auto;
+    font-family:inherit;
+    color:#202122;
+    background:#fff;
+    border:1px solid var(--cabinet-border);
+    padding:25px;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+    line-height:1.6;
+    position:relative;
+}
+#cabinet-edit-trigger{
+    position:absolute;
+    top:25px;
+    right:25px;
+    cursor:pointer;
+    font-size:18px;
+    color:#eee;
+    transition:color .3s;
+    z-index:999;
+}
+#cabinet-edit-trigger:hover{color:var(--cabinet-purple)}
+#cabinet-header-area{
+    border-bottom:3px solid var(--cabinet-purple);
+    margin-bottom:20px;
+    padding-bottom:10px;
+    padding-right:35px;
+}
+#cabinet-header-area h2{
+    margin:0;
+    color:#000;
+    font-size:30px;
+    font-weight:bold;
+    letter-spacing:2px;
+}
+#cabinet-header-area .subtitle{
+    font-size:14px;
+    color:#54595d;
+    font-style:italic;
+    margin-top:5px;
+}
+
+/* 與內閣共用同一套表格結構 */
+#cabinet-app .wm-wiki-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:30px;
+    border:1px solid var(--cabinet-border);
+    table-layout:fixed;
+}
+#cabinet-app .wm-wiki-table th{
+    background:#f8f9fa;
+    border:1px solid var(--cabinet-border);
+    padding:12px 8px;
+    text-align:center;
+    font-weight:bold;
+    color:#000;
+}
+#cabinet-app .wm-wiki-table td{
+    border:1px solid var(--cabinet-border);
+    padding:10px 8px;
+    vertical-align:middle;
+}
+
+/* 司憲院紫色部門橫幅 */
+#cabinet-app .wm-dept-banner,
+#cabinet-app .wm-cabinet-banner{
+    background:var(--cabinet-purple)!important;
+    color:#fff!important;
+    font-size:16px!important;
+    font-weight:bold;
+    text-align:left!important;
+    padding-left:15px!important;
+    letter-spacing:1px;
+}
+
+/* 官員名稱 */
+#cabinet-app .wm-incumbent,
+#cabinet-app .name-field{
+    font-weight:900!important;
+    color:#000!important;
+    font-size:16px!important;
+    text-align:left!important;
+    padding-left:15px!important;
+    min-height:1.2em;
+}
+#cabinet-app .name-field.empty-vacancy:after{
+    content:"懸缺";
+    color:#bdc3c7!important;
+    font-style:italic!important;
+    font-weight:normal!important;
+}
+
+/* 肖像 */
+#cabinet-app .wm-portrait-box{
+    width:80px;
+    height:100px;
+    background:#faf9f6;
+    border:1px solid var(--cabinet-gold);
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    border-radius:4px;
+    position:relative;
+}
+#cabinet-app .wm-portrait-box.editable{cursor:pointer}
+#cabinet-app .wm-portrait-img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+#cabinet-app .wm-portrait-placeholder{
+    font-size:11px;
+    color:#888;
+    text-align:center;
+}
+
+/* 職等標籤：保留司憲院紫金色 */
+#cabinet-app .wm-rank-tag,
+#cabinet-app .wm-p-rank{
+    display:inline-block;
+    padding:2px 10px;
+    background:#fcf3cf;
+    color:#9a7d0a;
+    border-radius:4px;
+    font-size:12px;
+    font-weight:bold;
+    border:1px solid var(--cabinet-gold);
+}
+#cabinet-app .wm-rank-high,
+#cabinet-app .wm-p-rank-high{
+    background:var(--cabinet-purple)!important;
+    color:#f1c40f!important;
+    border:1px solid var(--cabinet-gold)!important;
+}
+#cabinet-app .wm-rank-subchief{
+    background:#829cc9!important;
+    color:#fff!important;
+    border:1px solid #7189b1;
+}
+#cabinet-app .wm-rank-adjunct{
+    background:#f1f5f9;
+    color:#64748b;
+    border:1px solid #e2e8f0;
+}
+
+/* 編輯狀態 */
+#cabinet-app.is-editing [contenteditable="true"]{
+    outline:2px dashed var(--cabinet-purple)!important;
+    background:#fff8dc!important;
+    cursor:text;
+}
+#cabinet-app.is-editing .wm-portrait-box{
+    cursor:pointer;
+}
+
+/* 頁尾與同步燈號 */
+#cabinet-app .wm-sync-footer{
+    font-size:12px;
+    color:#72777d;
+    font-style:italic;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    border-left:3px solid var(--cabinet-gold);
+    padding:2px 0 2px 12px;
+    margin-top:15px;
+    line-height:1.5;
+}
+#cabinet-app #cabinet-sync-status{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-style:normal;
+    font-weight:bold;
+    white-space:nowrap;
+}
+#cabinet-app #cabinet-sync-status:before{
+    content:"";
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:currentColor;
+}
+#cabinet-app #cabinet-sync-status.online{color:#27ae60!important}
+#cabinet-app #cabinet-sync-status.online:before{
+    animation:cabinet-green-breathe 1.8s ease-in-out infinite;
+    box-shadow:0 0 5px currentColor;
+}
+#cabinet-app #cabinet-sync-status.loading{color:#d4af37!important}
+#cabinet-app #cabinet-sync-status.error{color:#e74c3c!important}
+#cabinet-app #cabinet-sync-status.local{color:#7f8c8d!important}
+@keyframes cabinet-green-breathe{
+    0%,100%{opacity:.55;box-shadow:0 0 4px currentColor,0 0 8px rgba(39,174,96,.25)}
+    50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.6)}
+}
+
+
+#cabinet-app .cabinet-edit-tools{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+    margin:-8px 0 16px;
+    border:1px solid #d4af37;
+    background:#fbf8ff;
+    color:#1a365d;
+    font-size:13px;
+}
+#cabinet-app .cabinet-edit-tools[hidden]{display:none!important}
+#cabinet-app .cabinet-edit-tools button{
+    border:1px solid #1a365d;
+    border-radius:4px;
+    padding:6px 12px;
+    margin-left:6px;
+    background:#1a365d;
+    color:#fff;
+    cursor:pointer;
+    font:inherit;
+}
+#cabinet-app .cabinet-edit-tools button:last-child{
+    background:#fff;
+    color:#1a365d;
+}
+#cabinet-app .cabinet-edit-tools button:disabled{
+    opacity:.55;
+    cursor:wait;
+}
+.cabinet-auth-modal{
+    position:fixed;
+    inset:0;
+    z-index:100000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(0,0,0,.48);
+}
+.cabinet-auth-modal[hidden]{display:none!important}
+.cabinet-auth-card{
+    width:min(440px,100%);
+    padding:22px;
+    border:1px solid #a2a9b1;
+    border-top:4px solid #1a365d;
+    border-radius:6px;
+    background:#fff;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);
+    font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+}
+.cabinet-auth-title{
+    margin-bottom:16px;
+    color:#1a365d;
+    font-size:19px;
+    font-weight:bold;
+}
+.cabinet-auth-label{
+    display:block;
+    margin:12px 0 5px;
+    font-size:13px;
+    font-weight:bold;
+}
+.cabinet-auth-input{
+    display:block;
+    width:100%;
+    padding:10px;
+    border:1px solid #a2a9b1;
+    border-radius:4px;
+    font:inherit;
+}
+.cabinet-auth-help{
+    margin-top:10px;
+    color:#666;
+    font-size:12px;
+    line-height:1.55;
+}
+.cabinet-auth-error{
+    min-height:20px;
+    margin-top:8px;
+    color:#c0392b;
+    font-size:12px;
+}
+.cabinet-auth-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:12px;
+}
+.cabinet-auth-actions button{
+    border:1px solid #1a365d;
+    border-radius:4px;
+    padding:8px 13px;
+    background:#fff;
+    color:#1a365d;
+    cursor:pointer;
+    font:inherit;
+}
+.cabinet-auth-actions button:last-child{
+    background:#1a365d;
+    color:#fff;
+}
+.cabinet-auth-actions button:disabled{opacity:.55;cursor:wait}
+
+@media(max-width:700px){
+    #cabinet-app{
+        margin:0;
+        padding:15px;
+        box-shadow:none;
+    }
+    #cabinet-header-area h2{font-size:23px}
+    #cabinet-app .wm-wiki-table{
+        font-size:14px;
+        min-width:760px;
+    }
+    #cabinet-app .table-scroll{
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+    }
+    #cabinet-app .wm-portrait-box{
+        width:64px;
+        height:80px;
+    }
+    #cabinet-app .wm-sync-footer{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+}
+
+/* 內閣深藍色樣式：版面與司憲院一致，色系沿用內閣原設計 */
+#cabinet-app .wm-dept-banner{
+    background:#1a365d!important;
+    color:#fff!important;
+    font-size:16px!important;
+    font-weight:bold;
+    text-align:left!important;
+    padding-left:15px!important;
+    letter-spacing:1px;
+}
+#cabinet-app .wm-incumbent,
+#cabinet-app .name-field{
+    font-weight:900!important;
+    color:#000!important;
+    font-size:16px!important;
+    text-align:left!important;
+    padding-left:15px!important;
+    min-height:1.2em;
+}
+#cabinet-app .wm-portrait-box{
+    background:#f0f0f0;
+    border:1px solid #ccc;
+}
+#cabinet-app .wm-p-rank,
+#cabinet-app .wm-rank-tag{
+    background:#e2e8f0!important;
+    color:#1a365d!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:12px;
+}
+#cabinet-app .wm-p-rank-high,
+#cabinet-app .wm-rank-high{
+    background:#fef3c7!important;
+    color:#92400e!important;
+    border:1px solid #fcd34d!important;
+}
+#cabinet-app .wm-rank-subchief{
+    background:#829cc9!important;
+    color:#fff!important;
+    border:1px solid #7189b1!important;
+}
+#cabinet-app .wm-rank-adjunct{
+    background:#f1f5f9!important;
+    color:#64748b!important;
+    border:1px solid #e2e8f0!important;
+}
+#cabinet-app .cabinet-empty{
+    padding:42px 16px!important;
+    text-align:center!important;
+    color:#64748b!important;
+    font-style:italic;
+}
+
+</style>
+</head>
+<body>
+<main class="wm-wiki-wrapper" id="cabinet-app">
+    <div id="cabinet-edit-trigger" title="管理員編輯">⚙️</div>
+
+    <div id="cabinet-header-area">
+        <h2 class="editable-field">第三十二屆內閣政府職官表</h2>
+        <div class="subtitle editable-field">Cabinet Government — List of Officials of the 32nd Cabinet</div>
+    </div>
+
+    <div class="cabinet-edit-tools" id="cabinet-edit-tools" hidden>
+        <span>編輯模式：修改完成後提交至 GitHub</span>
+        <div>
+            <button type="button" id="cabinet-save-button">提交至 GitHub</button>
+            <button type="button" id="cabinet-cancel-button">取消修改</button>
+        </div>
+    </div>
+
+    <div class="table-scroll">
+        <table class="wm-wiki-table">
+            <thead>
+                <tr>
+                    <th style="width:100px;">肖像</th>
+                    <th style="width:200px;">職銜 (Official Title)</th>
+                    <th style="width:100px;">職等 / 定員</th>
+                    <th style="width:160px;">官員名稱 (Name)</th>
+                    <th>備註 (Notes)</th>
+                </tr>
+            </thead>
+            <tbody id="cabinet-table-body"></tbody>
+        </table>
+    </div>
+
+    <div class="wm-sync-footer">
+        <span class="editable-field" id="cabinet-footer-text">註：Rank 為職等標註，國策顧問不在此列。</span>
+        <span id="cabinet-sync-status" class="loading">正在讀取資料</span>
+    </div>
+</main>
+
+<script>
+(function(){
+    const app=document.getElementById('cabinet-app');
+    if(!app || app.dataset.initialized==='true') return;
+    app.dataset.initialized='true';
+
+    const tb=document.getElementById('cabinet-table-body');
+    const status=document.getElementById('cabinet-sync-status');
+    const header=document.getElementById('cabinet-header-area');
+    const footer=document.getElementById('cabinet-footer-text');
+
+    const GH_API='https://api.github.com/repos/annynn1990/wme-list/contents/cabinet.json';
+    const GH_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/cabinet.json';
+    const GH_BRANCH='main';
+    const ADMIN_PASSWORD='admin';
+
+    let githubToken='';
+    let editing=false;
+    let backup=null;
+
+    const INITIAL_HTML="<tr><td colspan=\"5\" class=\"cabinet-empty\">內閣職官名冊待匯入</td></tr>";
+
+    function setStatus(message,state){
+        status.textContent=message;
+        status.className=state;
+    }
+
+    function cleanEmptyNames(){
+        tb.querySelectorAll('.name-field').forEach(function(el){
+            if(el.textContent.trim()===''){
+                el.innerHTML='';
+                el.classList.add('empty-vacancy');
+            }else{
+                el.classList.remove('empty-vacancy');
+            }
+        });
+    }
+
+    function safeHTML(element){
+        const copy=element.cloneNode(true);
+        copy.removeAttribute('contenteditable');
+        copy.removeAttribute('data-edit-enabled');
+        copy.removeAttribute('spellcheck');
+        copy.querySelectorAll('[contenteditable],[data-edit-enabled],[spellcheck]').forEach(function(node){
+            node.removeAttribute('contenteditable');
+            node.removeAttribute('data-edit-enabled');
+            node.removeAttribute('spellcheck');
+        });
+        copy.querySelectorAll('.wm-portrait-box.editable').forEach(function(node){
+            node.classList.remove('editable');
+        });
+        return copy.innerHTML;
+    }
+
+    function getSnapshot(){
+        return {
+            header:safeHTML(header),
+            table:safeHTML(tb),
+            footer:safeHTML(footer)
+        };
+    }
+
+    function lockDownEditing(){
+        editing=false;
+        app.classList.remove('is-editing');
+        app.querySelectorAll('[contenteditable],[data-edit-enabled],[spellcheck]').forEach(function(node){
+            node.removeAttribute('contenteditable');
+            node.removeAttribute('data-edit-enabled');
+            node.removeAttribute('spellcheck');
+        });
+        app.querySelectorAll('.wm-portrait-box.editable').forEach(function(node){
+            node.classList.remove('editable');
+        });
+        const tools=document.getElementById('cabinet-edit-tools');
+        if(tools) tools.hidden=true;
+    }
+
+    function markDirty(){
+        if(editing) setStatus('正在讀取資料','loading');
+    }
+
+    function makeEditable(el){
+        if(el.dataset.editEnabled==='true') return;
+        el.dataset.editEnabled='true';
+        el.contentEditable='true';
+        el.spellcheck=false;
+        el.addEventListener('input',function(){
+            if(el.classList.contains('name-field')){
+                if(el.textContent.trim()===''){
+                    el.innerHTML='';
+                    el.classList.add('empty-vacancy');
+                }else{
+                    el.classList.remove('empty-vacancy');
+                }
+            }
+            markDirty();
+        });
+    }
+
+    function enableEditing(){
+        if(editing) return;
+        backup={
+            header:header.innerHTML,
+            table:tb.innerHTML,
+            footer:footer.innerHTML
+        };
+        editing=true;
+        app.classList.add('is-editing');
+
+        app.querySelectorAll('.editable-field').forEach(makeEditable);
+        app.querySelectorAll('.wm-wiki-table th').forEach(makeEditable);
+        app.querySelectorAll('.wm-wiki-table td.col-txt,.wm-wiki-table td.wm-incumbent,.wm-wiki-table td.editable-field').forEach(makeEditable);
+        app.querySelectorAll('.wm-p-rank,.wm-rank-tag,.wm-rank-high,.wm-rank-subchief,.wm-rank-adjunct').forEach(makeEditable);
+        app.querySelectorAll('.wm-wiki-table td small').forEach(makeEditable);
+        tb.querySelectorAll('.wm-portrait-box,.portrait-cell .wm-portrait-box').forEach(function(box){
+            box.classList.add('editable');
+        });
+
+        const tools=document.getElementById('cabinet-edit-tools');
+        if(tools) tools.hidden=false;
+        setStatus('在線中','online');
+    }
+
+    function setBackup(){
+        if(!backup) return;
+        header.innerHTML=backup.header;
+        tb.innerHTML=backup.table;
+        footer.innerHTML=backup.footer;
+        cleanEmptyNames();
+    }
+
+    function closeEditing(){
+        lockDownEditing();
+        githubToken='';
+        backup=null;
+    }
+
+    function createAuthModal(){
+        let modal=document.getElementById('cabinet-auth-modal');
+        if(modal) return modal;
+
+        modal=document.createElement('div');
+        modal.id='cabinet-auth-modal';
+        modal.className='cabinet-auth-modal';
+        modal.hidden=true;
+        modal.innerHTML=
+            '<div class="cabinet-auth-card" role="dialog" aria-modal="true" aria-labelledby="cabinet-auth-title">'+
+                '<div class="cabinet-auth-title" id="cabinet-auth-title">內閣管理員驗證</div>'+
+                '<label class="cabinet-auth-label" for="cabinet-admin-password">管理密碼</label>'+
+                '<input class="cabinet-auth-input" id="cabinet-admin-password" type="password" autocomplete="off" placeholder="輸入管理密碼">'+
+                '<label class="cabinet-auth-label" for="cabinet-github-token">GitHub Fine-grained Token</label>'+
+                '<input class="cabinet-auth-input" id="cabinet-github-token" type="password" autocomplete="off" placeholder="github_pat_...">'+
+                '<div class="cabinet-auth-help">Token 僅用於本次頁面工作階段，不會寫入瀏覽器儲存。請只授權 annynn1990/wme-list，並設定 Contents: Read and write。</div>'+
+                '<div class="cabinet-auth-error" id="cabinet-auth-error"></div>'+
+                '<div class="cabinet-auth-actions">'+
+                    '<button type="button" id="cabinet-auth-cancel">取消</button>'+
+                    '<button type="button" id="cabinet-auth-submit">驗證並編輯</button>'+
+                '</div>'+
+            '</div>';
+
+        document.body.appendChild(modal);
+
+        const passwordInput=modal.querySelector('#cabinet-admin-password');
+        const tokenInput=modal.querySelector('#cabinet-github-token');
+        const error=modal.querySelector('#cabinet-auth-error');
+
+        modal.querySelector('#cabinet-auth-cancel').addEventListener('click',function(){
+            modal.hidden=true;
+            passwordInput.value='';
+            tokenInput.value='';
+            error.textContent='';
+        });
+
+        modal.querySelector('#cabinet-auth-submit').addEventListener('click',async function(){
+            const password=passwordInput.value;
+            const token=tokenInput.value.trim();
+
+            if(password!==ADMIN_PASSWORD){
+                error.textContent='管理密碼錯誤。';
+                return;
+            }
+            if(!token){
+                error.textContent='請輸入 GitHub Fine-grained Token。';
+                return;
+            }
+
+            const button=modal.querySelector('#cabinet-auth-submit');
+            button.disabled=true;
+            error.textContent='正在驗證 GitHub 權限……';
+
+            try{
+                await verifyGitHubToken(token);
+                githubToken=token;
+                modal.hidden=true;
+                passwordInput.value='';
+                tokenInput.value='';
+                error.textContent='';
+                enableEditing();
+            }catch(e){
+                error.textContent=e.message||'GitHub Token 驗證失敗。';
+            }finally{
+                button.disabled=false;
+            }
+        });
+
+        modal.addEventListener('keydown',function(e){
+            if(e.key==='Escape'){
+                modal.hidden=true;
+                passwordInput.value='';
+                tokenInput.value='';
+                error.textContent='';
+            }
+            if(e.key==='Enter' && e.target.tagName==='INPUT'){
+                modal.querySelector('#cabinet-auth-submit').click();
+            }
+        });
+
+        return modal;
+    }
+
+    function githubHeaders(token){
+        return {
+            'Accept':'application/vnd.github+json',
+            'Authorization':'Bearer '+token,
+            'X-GitHub-Api-Version':'2022-11-28'
+        };
+    }
+
+    async function verifyGitHubToken(token){
+        const response=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
+            method:'GET',
+            headers:githubHeaders(token),
+            cache:'no-store'
+        });
+
+        if(response.status===401) throw new Error('GitHub Token 無效或已過期。');
+        if(response.status===403) throw new Error('GitHub 拒絕存取。請確認 Token 已授權此 repository 的 Contents 讀寫權限。');
+        if(response.status===404) throw new Error('Token 無法讀取 annynn1990/wme-list/cabinet.json，請確認 Repository access 設定。');
+        if(!response.ok) throw new Error('GitHub 驗證失敗（HTTP '+response.status+'）。');
+
+        const file=await response.json();
+        if(!file.sha) throw new Error('GitHub 未回傳檔案版本資訊。');
+        return file;
+    }
+
+    function decodeBase64Utf8(value){
+        const binary=atob(value.replace(/\s/g,''));
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function encodeBase64Utf8(value){
+        const bytes=new TextEncoder().encode(value);
+        let binary='';
+        const chunkSize=0x8000;
+        for(let i=0;i<bytes.length;i+=chunkSize){
+            binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
+        }
+        return btoa(binary);
+    }
+
+    async function saveToGitHub(){
+        if(!editing || !githubToken) return;
+
+        const saveButton=document.getElementById('cabinet-save-button');
+        if(saveButton) saveButton.disabled=true;
+        setStatus('正在提交至 GitHub main 分支……','loading');
+
+        try{
+            // 先取得最新 SHA，避免使用舊版本覆蓋其他人的提交。
+            const currentResponse=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
+                method:'GET',
+                headers:githubHeaders(githubToken),
+                cache:'no-store'
+            });
+
+            if(!currentResponse.ok){
+                const message=currentResponse.status===401?'GitHub Token 已失效。':
+                    currentResponse.status===403?'GitHub 拒絕寫入，請確認 Contents: Read and write 權限。':
+                    '無法取得 GitHub 最新檔案版本（HTTP '+currentResponse.status+'）。';
+                throw new Error(message);
+            }
+
+            const currentFile=await currentResponse.json();
+            const currentData=JSON.parse(decodeBase64Utf8(currentFile.content||''));
+            const savedData=getSnapshot();
+
+            currentData.version=currentData.version||1;
+            currentData.updatedAt=new Date().toISOString();
+            currentData.savedHTML=savedData.table; // 相容原有 savedHTML 資料格式
+            currentData.savedData=savedData;       // 同步保存標題、表格、頁尾
+
+            const writeResponse=await fetch(GH_API,{
+                method:'PUT',
+                headers:Object.assign({'Content-Type':'application/json'},githubHeaders(githubToken)),
+                body:JSON.stringify({
+                    message:'Update Cabinet Government officials',
+                    content:encodeBase64Utf8(JSON.stringify(currentData,null,2)+'\n'),
+                    sha:currentFile.sha,
+                    branch:GH_BRANCH
+                })
+            });
+
+            const writeResult=await writeResponse.json();
+            if(!writeResponse.ok){
+                if(writeResponse.status===409 || writeResponse.status===422){
+                    throw new Error('GitHub 檔案已被其他修改更新，請重新載入頁面後再編輯，避免覆蓋新資料。');
+                }
+                throw new Error(writeResult.message||('GitHub 提交失敗（HTTP '+writeResponse.status+'）。'));
+            }
+
+            closeEditing();
+            setStatus('在線中','online');
+        }catch(e){
+            setStatus('離線中','error');
+            alert(e.message);
+        }finally{
+            if(saveButton) saveButton.disabled=false;
+        }
+    }
+
+    function cancelEditing(){
+        if(!editing) return;
+        if(!confirm('放棄本次尚未提交的修改？')) return;
+        setBackup();
+        closeEditing();
+        setStatus('在線中','online');
+    }
+
+    function bindToolbar(){
+        const saveButton=document.getElementById('cabinet-save-button');
+        const cancelButton=document.getElementById('cabinet-cancel-button');
+        if(saveButton) saveButton.addEventListener('click',saveToGitHub);
+        if(cancelButton) cancelButton.addEventListener('click',cancelEditing);
+    }
+
+    tb.addEventListener('click',function(e){
+        if(!editing) return;
+        const box=e.target.closest('.wm-portrait-box');
+        if(!box) return;
+
+        const url=prompt('輸入新肖像網址：');
+        if(!url) return;
+
+        try{
+            const parsed=new URL(url.trim());
+            if(parsed.protocol!=='https:' && parsed.protocol!=='http:'){
+                alert('請輸入有效的圖片網址。');
+                return;
+            }
+            const img=document.createElement('img');
+            img.src=parsed.href;
+            img.className='wm-portrait-img';
+            img.alt='官員肖像';
+            box.replaceChildren(img);
+            markDirty();
+        }catch(e){
+            alert('圖片網址格式不正確。');
+        }
+    });
+
+    async function loadData(){
+        setStatus('正在讀取 GitHub 資料','loading');
+        try{
+            const response=await fetch(GH_RAW+'?ts='+Date.now(),{cache:'no-store'});
+            if(!response.ok) throw new Error('GitHub cabinet.json 讀取失敗（HTTP '+response.status+'）。');
+
+            const data=await response.json();
+            if(data.savedData){
+                if(typeof data.savedData.header==='string') header.innerHTML=data.savedData.header;
+                if(typeof data.savedData.table==='string') tb.innerHTML=data.savedData.table;
+                if(typeof data.savedData.footer==='string') footer.innerHTML=data.savedData.footer;
+            }else if(typeof data.savedHTML==='string'){
+                tb.innerHTML=data.savedHTML;
+            }else{
+                throw new Error('cabinet.json 缺少 savedHTML。');
+            }
+
+            lockDownEditing();
+            cleanEmptyNames();
+            setStatus('在線中','online');
+        }catch(e){
+            tb.innerHTML=INITIAL_HTML;
+            lockDownEditing();
+            cleanEmptyNames();
+            setStatus('離線中','error');
+        }
+    }
+
+    const editTrigger=document.getElementById('cabinet-edit-trigger');
+    editTrigger.addEventListener('click',function(){
+        if(editing) return;
+        const modal=createAuthModal();
+        modal.hidden=false;
+        const passwordInput=modal.querySelector('#cabinet-admin-password');
+        setTimeout(function(){passwordInput.focus();},0);
+    });
+
+    // iframe 嵌入支援：只回報內容本身高度，不把 iframe 視窗高度算進去。
+    function notifyEmbedHeight(){
+        if(window.parent===window) return;
+        const rect=app.getBoundingClientRect();
+        const style=window.getComputedStyle(app);
+        const marginBottom=parseFloat(style.marginBottom)||0;
+        const height=Math.ceil(rect.bottom+window.scrollY+marginBottom);
+        window.parent.postMessage({
+            type:'wme-cabinet-embed-height',
+            height:Math.max(height,1)
+        },'*');
+    }
+
+    let embedHeightFrame=0;
+    function scheduleEmbedHeight(){
+        if(window.parent===window) return;
+        cancelAnimationFrame(embedHeightFrame);
+        embedHeightFrame=requestAnimationFrame(function(){
+            requestAnimationFrame(notifyEmbedHeight);
+        });
+    }
+
+    if(window.parent!==window){
+        window.addEventListener('load',scheduleEmbedHeight);
+        window.addEventListener('resize',scheduleEmbedHeight);
+
+        if('ResizeObserver' in window){
+            const embedResizeObserver=new ResizeObserver(scheduleEmbedHeight);
+            embedResizeObserver.observe(document.documentElement);
+            embedResizeObserver.observe(app);
+        }
+
+        const embedMutationObserver=new MutationObserver(scheduleEmbedHeight);
+        embedMutationObserver.observe(app,{
+            childList:true,
+            subtree:true,
+            characterData:true,
+            attributes:true
+        });
+
+        if(document.fonts && document.fonts.ready){
+            document.fonts.ready.then(scheduleEmbedHeight);
+        }
+        scheduleEmbedHeight();
+    }
+
+    bindToolbar();
+    loadData().then(scheduleEmbedHeight);
+})();
+</script>
+</body>
+</html>
