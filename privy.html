@@ -213,6 +213,8 @@ body{
 #privy-app #privy-sync-status.loading{color:#d4af37!important}
 #privy-app #privy-sync-status.error{color:#e74c3c!important}
 #privy-app #privy-sync-status.local{color:#7f8c8d!important}
+#privy-app #privy-sync-status.online:after{content:"在線中";margin-left:6px;padding-left:8px;border-left:1px solid currentColor;font-weight:800}
+#privy-app #privy-sync-status.error:after{content:"離線中";margin-left:6px;padding-left:8px;border-left:1px solid currentColor;font-weight:800}
 @keyframes privy-green-breathe{
     0%,100%{opacity:.55;box-shadow:0 0 4px currentColor,0 0 8px rgba(39,174,96,.25)}
     50%{opacity:1;box-shadow:0 0 8px currentColor,0 0 18px rgba(39,174,96,.6)}
