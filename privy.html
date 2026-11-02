@@ -789,8 +789,55 @@ body{
         setTimeout(function(){passwordInput.focus();},0);
     });
 
+    // iframe 嵌入支援：回報實際頁面高度，讓論壇端自動調整框架。
+    function notifyEmbedHeight(){
+        if(window.parent===window) return;
+        const height=Math.ceil(Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight,
+            app.scrollHeight
+        ));
+        window.parent.postMessage({
+            type:'wme-privy-embed-height',
+            height:height
+        },'*');
+    }
+
+    let embedHeightFrame=0;
+    function scheduleEmbedHeight(){
+        if(window.parent===window) return;
+        cancelAnimationFrame(embedHeightFrame);
+        embedHeightFrame=requestAnimationFrame(function(){
+            requestAnimationFrame(notifyEmbedHeight);
+        });
+    }
+
+    if(window.parent!==window){
+        window.addEventListener('load',scheduleEmbedHeight);
+        window.addEventListener('resize',scheduleEmbedHeight);
+
+        if('ResizeObserver' in window){
+            const embedResizeObserver=new ResizeObserver(scheduleEmbedHeight);
+            embedResizeObserver.observe(document.documentElement);
+            embedResizeObserver.observe(app);
+        }
+
+        const embedMutationObserver=new MutationObserver(scheduleEmbedHeight);
+        embedMutationObserver.observe(app,{
+            childList:true,
+            subtree:true,
+            characterData:true,
+            attributes:true
+        });
+
+        if(document.fonts && document.fonts.ready){
+            document.fonts.ready.then(scheduleEmbedHeight);
+        }
+        scheduleEmbedHeight();
+    }
+
     bindToolbar();
-    loadData();
+    loadData().then(scheduleEmbedHeight);
 })();
 </script>
 </body>
