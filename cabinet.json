@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-03T00:00:00+08:00",
+  "migratedFrom": "Cabinet savedData schema",
+  "savedHTML": "<tr><td colspan=\"5\" class=\"cabinet-empty\">內閣職官名冊待匯入</td></tr>",
+  "savedData": {
+    "header": "<h2 class=\"editable-field\">第三十二屆內閣政府職官表</h2>\n        <div class=\"subtitle editable-field\">Cabinet Government — List of Officials of the 32nd Cabinet</div>",
+    "table": "<tr><td colspan=\"5\" class=\"cabinet-empty\">內閣職官名冊待匯入</td></tr>",
+    "footer": "註：Rank 為職等標註，國策顧問不在此列。"
+  }
+}
