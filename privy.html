@@ -284,9 +284,11 @@ body{
     const status=document.getElementById('privy-sync-status');
     const header=document.getElementById('privy-header-area');
     const footer=document.getElementById('privy-footer-text');
-
-    const LOCAL_KEY='wme-list-privy-edit-html';
-    const DATA_URL='https://raw.githubusercontent.com/annynn1990/wme-list/main/data.json?ts='+Date.now();
+    const API='https://wme-list.vercel.app/api/privy';
+    const EDIT_PASSWORD='1111';
+    let saveTimer=null;
+    let saveInProgress=false;
+    let saveQueued=false;
 
     const INITIAL_HTML="<tr><th colspan=\"5\" class=\"wm-privy-banner\">院領導核心 (The High Council)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/02_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>大司憲</b></td>\n<td><span class=\"wm-p-rank wm-p-rank-high\">Rank 1</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">李迎希</td>\n<td class=\"col-txt\">首席秘書官；兼任選舉委員會主席</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/01/90_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\"><b>二司憲</b></td>\n<td><span class=\"wm-p-rank\">Rank 2</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">白敖</td>\n<td class=\"col-txt\">副秘書長</td>\n</tr>\n<tr><th colspan=\"5\" class=\"wm-privy-banner\">下設處室與司局 (Departments & Bureaus)</th></tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">制司處處長<br><small>（司制）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管詔書制作</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/03/33_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">受憲處處長<br><small>（司典）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">夏侯昜</td>\n<td class=\"col-txt\">掌管典章憲制</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/89_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">檔案處處長<br><small>（司吏）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">小羽</td>\n<td class=\"col-txt\">掌管皇家檔案與吏事</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/28_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">司政處處長<br><small>（司政）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">仲尼</td>\n<td class=\"col-txt\">掌管行政文書</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"><img src=\"https://www.wongmingempire.com/bbswm/uc_server/data/avatar/000/00/00/11_avatar_middle.jpg\" class=\"wm-portrait-img\"></div></td>\n<td class=\"col-txt\">律令司<br><small>（司律）</small></td>\n<td><span class=\"wm-p-rank\">Rank 4</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\">路德維希</td>\n<td class=\"col-txt\">掌管皇室律令</td>\n</tr>\n<tr>\n<td><div class=\"wm-portrait-box\"></div></td>\n<td class=\"col-txt\">宗正司</td>\n<td><span class=\"wm-p-rank\">Rank 5</span><br><small>定員 1</small></td>\n<td class=\"col-txt name-field\"></td>\n<td class=\"col-txt\">掌管宗室事務</td>\n</tr>";
 
@@ -306,51 +308,57 @@ body{
         });
     }
 
-    function saveLocal(){
+    function snapshot(){
+        return {
+            header:header.innerHTML,
+            table:tb.innerHTML,
+            footer:footer.innerHTML
+        };
+    }
+
+    async function saveCloud(){
+        if(!app.classList.contains('is-editing')) return;
+        if(saveInProgress){
+            saveQueued=true;
+            return;
+        }
+        saveInProgress=true;
+        setStatus('正在儲存雲端資料','loading');
+
         try{
-            const saved={
-                header:header.innerHTML,
-                table:tb.innerHTML,
-                footer:footer.innerHTML
-            };
-            localStorage.setItem(LOCAL_KEY,JSON.stringify(saved));
-            setStatus('本機修改已保存','local');
-        }catch(e){
-            setStatus('本機保存失敗','error');
+            const response=await fetch(API,{
+                method:'PUT',
+                headers:{
+                    'Content-Type':'application/json',
+                    'X-Edit-Password':EDIT_PASSWORD
+                },
+                body:JSON.stringify({savedData:snapshot()})
+            });
+            const result=await response.json();
+            if(!response.ok) throw new Error(result.error||('HTTP '+response.status));
+            setStatus('雲端同步成功','online');
+        }catch(error){
+            setStatus('雲端儲存失敗：'+error.message,'error');
+        }finally{
+            saveInProgress=false;
+            if(saveQueued){
+                saveQueued=false;
+                saveCloud();
+            }
         }
     }
 
-    function restoreLocal(){
-        try{
-            const raw=localStorage.getItem(LOCAL_KEY);
-            if(!raw) return false;
-
-            try{
-                const saved=JSON.parse(raw);
-                if(saved && typeof saved==='object' && typeof saved.table==='string'){
-                    if(typeof saved.header==='string') header.innerHTML=saved.header;
-                    tb.innerHTML=saved.table;
-                    if(typeof saved.footer==='string') footer.innerHTML=saved.footer;
-                    return true;
-                }
-            }catch(_){
-                /* 舊版 localStorage 只保存 table HTML，以下相容舊資料。 */
-            }
-
-            tb.innerHTML=raw;
-            return true;
-        }catch(e){
-            return false;
-        }
+    function scheduleSave(){
+        setStatus('有未儲存的修改','loading');
+        if(saveTimer) clearTimeout(saveTimer);
+        saveTimer=setTimeout(saveCloud,700);
     }
 
     function makeEditable(el){
         if(el.dataset.editEnabled==='true') return;
-
         el.dataset.editEnabled='true';
         el.contentEditable='true';
         el.spellcheck=false;
-
         el.addEventListener('input',function(){
             if(el.classList.contains('name-field')){
                 if(el.textContent.trim()===''){
@@ -360,90 +368,94 @@ body{
                     el.classList.remove('empty-vacancy');
                 }
             }
-            saveLocal();
+            scheduleSave();
         });
-
-        el.addEventListener('blur',saveLocal);
+        el.addEventListener('blur',scheduleSave);
     }
 
     function enableEditing(){
         if(app.classList.contains('is-editing')) return;
         app.classList.add('is-editing');
         cleanEmptyNames();
-
         app.querySelectorAll('.editable-field').forEach(makeEditable);
         app.querySelectorAll('.wm-wiki-table th').forEach(makeEditable);
         app.querySelectorAll('.wm-wiki-table td.col-txt').forEach(makeEditable);
         app.querySelectorAll('.wm-p-rank,.wm-rank-tag').forEach(makeEditable);
         app.querySelectorAll('.wm-wiki-table td small').forEach(makeEditable);
-
         tb.querySelectorAll('.wm-portrait-box').forEach(function(box){
             box.classList.add('editable');
         });
-
         setStatus('編輯模式已啟動','online');
     }
 
     tb.addEventListener('click',function(e){
         if(!app.classList.contains('is-editing')) return;
-
         const box=e.target.closest('.wm-portrait-box');
         if(!box) return;
-
         const url=prompt('輸入新肖像網址：');
         if(!url) return;
-
         try{
             const parsed=new URL(url.trim());
             if(parsed.protocol!=='https:' && parsed.protocol!=='http:'){
                 alert('請輸入有效的圖片網址。');
                 return;
             }
-
             const img=document.createElement('img');
             img.src=parsed.href;
             img.className='wm-portrait-img';
             img.alt='官員肖像';
             box.replaceChildren(img);
-            saveLocal();
-        }catch(e){
+            scheduleSave();
+        }catch(error){
             alert('圖片網址格式不正確。');
         }
     });
 
+    async function verifyPassword(password){
+        const response=await fetch(API,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'verify',password:password})
+        });
+        const result=await response.json();
+        if(!response.ok) throw new Error(result.error||'管理密碼驗證失敗');
+        return true;
+    }
+
     async function loadData(){
-        setStatus('正在讀取資料','loading');
-
+        setStatus('正在讀取雲端資料','loading');
         try{
-            if(restoreLocal()){
-                cleanEmptyNames();
-                setStatus('已載入本機修改','local');
-                return;
+            const response=await fetch(API,{cache:'no-store'});
+            const result=await response.json();
+            if(!response.ok) throw new Error(result.error||('HTTP '+response.status));
+
+            if(result.savedData){
+                if(typeof result.savedData.header==='string') header.innerHTML=result.savedData.header;
+                tb.innerHTML=result.savedData.table;
+                if(typeof result.savedData.footer==='string') footer.innerHTML=result.savedData.footer;
+            }else if(typeof result.savedHTML==='string'){
+                tb.innerHTML=result.savedHTML;
+            }else{
+                throw new Error('雲端資料格式錯誤');
             }
-
-            const response=await fetch(DATA_URL,{cache:'no-store'});
-            if(!response.ok) throw new Error('HTTP '+response.status);
-
-            const data=await response.json();
-            if(!data.savedHTML) throw new Error('資料格式錯誤');
-
-            tb.innerHTML=data.savedHTML;
             cleanEmptyNames();
-            setStatus('資料讀取成功','online');
-        }catch(e){
+            setStatus('雲端資料讀取成功','online');
+        }catch(error){
             tb.innerHTML=INITIAL_HTML;
             cleanEmptyNames();
-            setStatus('雲端讀取失敗，使用備援資料','error');
+            setStatus('雲端讀取失敗：'+error.message,'error');
         }
     }
 
-    document.getElementById('privy-edit-trigger').onclick=function(){
+    document.getElementById('privy-edit-trigger').onclick=async function(){
         const password=prompt('管理員驗證：');
-        if(password==='1111'){
+        if(password===null) return;
+        try{
+            await verifyPassword(password);
             enableEditing();
-            alert('司憲院職官表編輯功能已啟動。');
-        }else{
-            alert('驗證失敗。');
+            alert('司憲院職官表編輯功能已啟動，修改將直接同步至雲端。');
+        }catch(error){
+            alert(error.message);
         }
     };
 
