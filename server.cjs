@@ -19,7 +19,7 @@ const LEGACY_URL = process.env.LEGACY_IMPORT_URL || 'https://wme-list.vercel.app
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Password, X-Cabinet-Password',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Password, X-Cabinet-Password, X-Privy-Password',
   'Cache-Control': 'no-store'
 };
 
@@ -258,7 +258,7 @@ async function writePrivySnapshot(savedData) {
     message: 'Update Privy Council officials',
     branch: BRANCH,
     sha: existing.sha,
-    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\\n', 'utf8').toString('base64')
+    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\n', 'utf8').toString('base64')
   };
 
   const r = await fetch(contentsUrlFor(PRIVY_FILE, false), {
@@ -357,8 +357,7 @@ const server = http.createServer(async function (req, res) {
       githubWriteConfigured: Boolean(TOKEN),
       editPasswordConfigured: Boolean(PASSWORD),
       cabinetPasswordConfigured: Boolean(CABINET_PASSWORD),
-      privyPasswordConfigured: Boolean(PRIVY_PASSWORD),
-      githubWriteConfigured: Boolean(TOKEN)
+      privyPasswordConfigured: Boolean(PRIVY_PASSWORD)
     });
   }
 
