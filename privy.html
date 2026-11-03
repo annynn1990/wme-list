@@ -400,6 +400,7 @@ body{
     const footer=document.getElementById('privy-footer-text');
 
     const PRIVY_API='https://wme-households-api.onrender.com/api/privy';
+    const PRIVY_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/data.json';
 
     let privyPassword='';
     let editing=false;
@@ -683,7 +684,7 @@ body{
     async function loadData(){
         setStatus('讀取中','loading');
         try{
-            const response=await fetch(PRIVY_API+'?ts='+Date.now(),{cache:'no-store'});
+            const response=await fetch(PRIVY_RAW+'?ts='+Date.now(),{cache:'no-store'});
             if(!response.ok) throw new Error('司憲院資料讀取失敗（HTTP '+response.status+'）。');
 
             const data=await response.json();
