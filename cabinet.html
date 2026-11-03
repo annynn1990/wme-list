@@ -454,6 +454,7 @@ body{
     const footer=document.getElementById('cabinet-footer-text');
 
     const CABINET_API='https://wme-households-api.onrender.com/api/cabinet';
+    const CABINET_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/cabinet.json';
 
     let cabinetPassword='';
     let editing=false;
@@ -737,7 +738,7 @@ body{
     async function loadData(){
         setStatus('讀取中','loading');
         try{
-            const response=await fetch(CABINET_API+'?ts='+Date.now(),{cache:'no-store'});
+            const response=await fetch(CABINET_RAW+'?ts='+Date.now(),{cache:'no-store'});
             if(!response.ok) throw new Error('內閣資料讀取失敗（HTTP '+response.status+'）。');
 
             const data=await response.json();
