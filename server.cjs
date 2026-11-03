@@ -6,6 +6,8 @@ const crypto = require('node:crypto');
 const PORT = Number(process.env.PORT || 10000);
 const TOKEN = process.env.GH_WRITE_TOKEN || '';
 const PASSWORD = process.env.EDIT_PASSWORD || '';
+const CABINET_PASSWORD = process.env.CABINET_EDIT_PASSWORD || '';
+const CABINET_FILE = process.env.GITHUB_CABINET_DATA_PATH || 'cabinet.json';
 const OWNER = process.env.GITHUB_OWNER || 'annynn1990';
 const REPO = process.env.GITHUB_REPO || 'wme-list';
 const BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -15,7 +17,7 @@ const LEGACY_URL = process.env.LEGACY_IMPORT_URL || 'https://wme-list.vercel.app
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Password',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Password, X-Cabinet-Password',
   'Cache-Control': 'no-store'
 };
 
@@ -26,10 +28,10 @@ function send(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-function passwordMatches(candidate) {
-  if (!PASSWORD || typeof candidate !== 'string') return false;
+function passwordMatches(candidate, expectedPassword = PASSWORD) {
+  if (!expectedPassword || typeof candidate !== 'string') return false;
   const a = Buffer.from(candidate, 'utf8');
-  const b = Buffer.from(PASSWORD, 'utf8');
+  const b = Buffer.from(expectedPassword, 'utf8');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
@@ -44,12 +46,16 @@ function githubHeaders(json) {
   return h;
 }
 
-function contentsUrl(withRef) {
-  const path = FILE.split('/').map(encodeURIComponent).join('/');
+function contentsUrlFor(filePath, withRef) {
+  const path = filePath.split('/').map(encodeURIComponent).join('/');
   let url = 'https://api.github.com/repos/' + encodeURIComponent(OWNER) + '/' +
     encodeURIComponent(REPO) + '/contents/' + path;
   if (withRef) url += '?ref=' + encodeURIComponent(BRANCH);
   return url;
+}
+
+function contentsUrl(withRef) {
+  return contentsUrlFor(FILE, withRef);
 }
 
 async function readGitHubSnapshot() {
@@ -109,6 +115,89 @@ async function writeGitHubSnapshot(data, message) {
     e.statusCode = r.status === 409 || r.status === 422 ? 409 : 502;
     throw e;
   }
+}
+
+
+async function readCabinetSnapshot() {
+  const r = await fetch(contentsUrlFor(CABINET_FILE, true), {
+    headers: githubHeaders(false),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('內閣資料讀取失敗（HTTP ' + r.status + '）');
+
+  const item = await r.json();
+  if (!item || typeof item.content !== 'string') throw new Error('內閣資料檔格式錯誤');
+  const raw = Buffer.from(item.content.replace(/\\s/g, ''), 'base64').toString('utf8');
+  const data = JSON.parse(raw);
+  if (!data.savedData ||
+      typeof data.savedData.header !== 'string' ||
+      typeof data.savedData.table !== 'string' ||
+      typeof data.savedData.footer !== 'string') {
+    throw new Error('內閣資料缺少 savedData.header / table / footer');
+  }
+  return { data: data, sha: item.sha };
+}
+
+async function writeCabinetSnapshot(savedData) {
+  if (!TOKEN) {
+    const e = new Error('雲端儲存服務尚未設定寫入權限，資料未儲存。');
+    e.statusCode = 503;
+    throw e;
+  }
+  if (!savedData ||
+      typeof savedData.header !== 'string' ||
+      typeof savedData.table !== 'string' ||
+      typeof savedData.footer !== 'string') {
+    const e = new Error('內閣資料格式錯誤，必須包含 header、table、footer。');
+    e.statusCode = 400;
+    throw e;
+  }
+
+  const existing = await readCabinetSnapshot();
+  if (!existing) {
+    const e = new Error('找不到 cabinet.json，為避免建立空白名冊，已停止儲存。');
+    e.statusCode = 404;
+    throw e;
+  }
+
+  const currentData = existing.data;
+  currentData.version = currentData.version || 1;
+  currentData.updatedAt = new Date().toISOString();
+  currentData.savedHTML = savedData.table;
+  currentData.savedData = {
+    header: savedData.header,
+    table: savedData.table,
+    footer: savedData.footer
+  };
+
+  const payload = {
+    message: 'Update Cabinet Government officials',
+    branch: BRANCH,
+    sha: existing.sha,
+    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\\n', 'utf8').toString('base64')
+  };
+
+  const r = await fetch(contentsUrlFor(CABINET_FILE, false), {
+    method: 'PUT',
+    headers: githubHeaders(true),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(20000)
+  });
+
+  if (!r.ok) {
+    const detail = (await r.text().catch(() => '')).slice(0, 220);
+    const e = new Error('雲端儲存失敗（HTTP ' + r.status + '）' + detail);
+    e.statusCode = r.status === 409 || r.status === 422 ? 409 : 502;
+    throw e;
+  }
+
+  const result = await r.json();
+  return {
+    ok: true,
+    updatedAt: currentData.updatedAt,
+    commit: result.commit && result.commit.sha ? result.commit.sha : null
+  };
 }
 
 async function getData() {
@@ -183,9 +272,47 @@ const server = http.createServer(async function (req, res) {
     return send(res, 200, {
       ok: true,
       githubWriteConfigured: Boolean(TOKEN),
-      editPasswordConfigured: Boolean(PASSWORD)
+      editPasswordConfigured: Boolean(PASSWORD),
+      cabinetPasswordConfigured: Boolean(CABINET_PASSWORD),
+      githubWriteConfigured: Boolean(TOKEN)
     });
   }
+
+  if (url.pathname === '/api/cabinet') {
+    try {
+      if (req.method === 'GET') {
+        const snapshot = await readCabinetSnapshot();
+        if (!snapshot) return send(res, 404, { error: '找不到 cabinet.json' });
+        return send(res, 200, snapshot.data);
+      }
+
+      if (req.method === 'POST') {
+        const body = await readBody(req);
+        if (body.action !== 'verify') return send(res, 400, { error: '未知操作' });
+        if (!CABINET_PASSWORD) return send(res, 503, { error: '內閣管理密碼尚未設定' });
+        if (!passwordMatches(body.password, CABINET_PASSWORD)) {
+          return send(res, 403, { error: '管理密碼錯誤' });
+        }
+        return send(res, 200, { ok: true });
+      }
+
+      if (req.method === 'PUT') {
+        if (!CABINET_PASSWORD) return send(res, 503, { error: '內閣管理密碼尚未設定' });
+        if (!passwordMatches(req.headers['x-cabinet-password'], CABINET_PASSWORD)) {
+          return send(res, 403, { error: '管理密碼錯誤，未儲存' });
+        }
+        const body = await readBody(req);
+        const result = await writeCabinetSnapshot(body.savedData);
+        return send(res, 200, result);
+      }
+
+      res.setHeader('Allow', 'GET,POST,PUT,OPTIONS');
+      return send(res, 405, { error: 'Method Not Allowed' });
+    } catch (error) {
+      return send(res, error.statusCode || 502, { error: error.message || '內閣雲端資料服務發生錯誤' });
+    }
+  }
+
   if (url.pathname !== '/api/households') return send(res, 404, { error: 'Not Found' });
 
   try {
