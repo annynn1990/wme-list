@@ -18,7 +18,7 @@ async function api(request,env,key){
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(path==="/api/health"){try{if(!env.DB)throw new Error("D1 binding missing");const rows=await env.DB.prepare("SELECT document_key FROM wme_documents ORDER BY document_key").all();return reply({ok:true,d1Configured:true,passwordConfigured:!!env.WME_EDIT_PASSWORD,d1Documents:rows.results?.map(x=>x.document_key)||[]});}catch(e){return reply({ok:false,d1Configured:!!env.DB,passwordConfigured:!!env.WME_EDIT_PASSWORD,error:e.message||"D1 health check failed"},503);}}
- const match=path.match(new RegExp("^/api/(privy|cabinet)$"));if(match)return api(request,env,match[1]);
+ const match=path.match(new RegExp("^/api/(privy|cabinet|local-officials)$"));if(match)return api(request,env,match[1]);
  if(path==="/"||PAGES[path])return new Response(PAGES[path]||PAGES["/"],{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
  return new Response("Not Found",{status:404,headers:{"Access-Control-Allow-Origin":"*"}});
 }};
