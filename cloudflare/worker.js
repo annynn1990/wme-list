@@ -47,7 +47,12 @@ async function api(request,env,key){
 export default {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
-  if(path==="/api/health")return reply({ok:true,d1Configured:!!env.DB,passwordConfigured:!!env.WME_EDIT_PASSWORD});
+  if(path==="/api/health"){
+   try{
+    const rows=await env.DB.prepare("SELECT document_key FROM wme_documents ORDER BY document_key").all();
+    return reply({ok:true,d1Configured:true,passwordConfigured:!!env.WME_EDIT_PASSWORD,d1Documents:rows.results?.map(x=>x.document_key)||[]});
+   }catch(e){return reply({ok:false,d1Configured:!!env.DB,passwordConfigured:!!env.WME_EDIT_PASSWORD,error:e.message||"D1 health check failed"},503);}
+  }
   const match=path.match(/^\/api\/(privy|cabinet)$/);
   if(match)return api(request,env,match[1]);
   if(path==="/"||PAGES[path]){
