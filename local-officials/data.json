@@ -49,24 +49,6 @@
           "level": "4",
           "strength": "1",
           "name": "黃祺恩"
-        },
-        {
-          "title": "慈佑堂市長",
-          "level": "5",
-          "strength": "1",
-          "name": "黃祺恩"
-        },
-        {
-          "title": "主教堂市長",
-          "level": "5",
-          "strength": "1",
-          "name": "麥塊"
-        },
-        {
-          "title": "宇華堂市長",
-          "level": "5",
-          "strength": "1",
-          "name": "夏侯易"
         }
       ]
     },
@@ -84,24 +66,6 @@
         {
           "title": "自由城副總督",
           "level": "4",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "暢揮園市長",
-          "level": "5",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "永享堂市長",
-          "level": "5",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "健康院市長",
-          "level": "5",
           "strength": "1",
           "name": ""
         }
@@ -123,42 +87,6 @@
           "level": "4",
           "strength": "1",
           "name": ""
-        },
-        {
-          "title": "明政公所市長",
-          "level": "5",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "雍安公園市長",
-          "level": "5",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "韻賢角市長",
-          "level": "5",
-          "strength": "1",
-          "name": "李薔賢"
-        },
-        {
-          "title": "客歲家市長",
-          "level": "5",
-          "strength": "1",
-          "name": ""
-        },
-        {
-          "title": "快樂園市長",
-          "level": "5",
-          "strength": "1",
-          "name": "仲尼"
-        },
-        {
-          "title": "顯像館市長",
-          "level": "5",
-          "strength": "1",
-          "name": "關二哥"
         }
       ]
     }
