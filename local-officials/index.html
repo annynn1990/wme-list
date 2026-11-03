@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b5d5a">
+<meta name="description" content="黃名帝國地方政府與海外屬地職官名冊。">
+<title>地方政府與海外屬地職官表｜黃名帝國</title>
+<style>
+:root{
+  color-scheme:light;
+  --ink:#172b2a;
+  --muted:#687a78;
+  --teal:#087b76;
+  --teal-dark:#075b58;
+  --teal-pale:#e9f4f2;
+  --gold:#c7a85b;
+  --line:#d9e4e1;
+  --paper:#fff;
+  --canvas:#f1f5f3;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 12% 0%,rgba(8,123,118,.08),transparent 28rem),
+    var(--canvas);
+  font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+}
+.site-shell{width:min(1120px,calc(100% - 32px));margin:34px auto 48px}
+.hero{
+  position:relative;
+  overflow:hidden;
+  padding:34px 38px 30px;
+  color:#fff;
+  background:linear-gradient(125deg,#064e4b,#087b76 64%,#1b8980);
+  border-radius:16px 16px 5px 5px;
+  box-shadow:0 12px 30px rgba(4,65,62,.13);
+}
+.hero:after{
+  content:"";
+  position:absolute;
+  width:280px;height:280px;
+  right:-65px;top:-120px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:50%;
+  box-shadow:0 0 0 28px rgba(255,255,255,.035),0 0 0 58px rgba(255,255,255,.025);
+}
+.kicker{
+  position:relative;z-index:1;
+  margin:0 0 12px;
+  color:#d5e9e5;
+  font:600 11px/1.4 Arial,sans-serif;
+  letter-spacing:2.4px;
+  text-transform:uppercase;
+}
+h1{
+  position:relative;z-index:1;
+  margin:0;
+  font-size:clamp(25px,4vw,38px);
+  line-height:1.35;
+  letter-spacing:1.2px;
+}
+.hero-subtitle{
+  position:relative;z-index:1;
+  margin:10px 0 0;
+  color:#d9ebe8;
+  font:14px/1.5 Georgia,serif;
+  letter-spacing:.3px;
+}
+.hero-rule{position:relative;z-index:1;width:74px;height:3px;margin-top:22px;background:var(--gold)}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin:16px 0;
+}
+.stat{
+  padding:17px 19px;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:0 4px 12px rgba(25,66,61,.035);
+}
+.stat-value{display:block;color:var(--teal-dark);font-size:25px;font-weight:800;line-height:1.2}
+.stat-label{display:block;margin-top:5px;color:var(--muted);font-size:12px}
+.toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;
+  margin:20px 0 14px;
+}
+.search-wrap{flex:1 1 260px;max-width:440px;position:relative}
+.search-wrap input{
+  width:100%;padding:12px 15px 12px 40px;
+  color:var(--ink);background:#fff;
+  border:1px solid var(--line);border-radius:7px;
+  font:14px inherit;outline:none;
+}
+.search-wrap input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(8,123,118,.1)}
+.search-icon{position:absolute;left:14px;top:10px;color:#77918d;font:17px Arial,sans-serif}
+.jump-links{display:flex;gap:7px;flex-wrap:wrap}
+.jump-links a{
+  display:inline-block;padding:7px 11px;
+  color:var(--teal-dark);background:var(--teal-pale);
+  border:1px solid #cfe4df;border-radius:20px;
+  text-decoration:none;font-size:12px;
+}
+.jump-links a:hover{background:#d9eeea}
+.section{
+  margin:16px 0;
+  overflow:hidden;
+  background:#fff;border:1px solid var(--line);
+  border-radius:9px;box-shadow:0 5px 16px rgba(25,66,61,.04);
+}
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:18px 21px 15px;
+  background:linear-gradient(90deg,#f0f7f5,#fff);
+  border-bottom:1px solid var(--line);
+}
+.section-title{margin:0;color:var(--teal-dark);font-size:18px;line-height:1.45}
+.section-subtitle{margin:4px 0 0;color:#82918f;font:12px/1.4 Georgia,serif}
+.section-count{
+  flex:0 0 auto;padding:5px 10px;color:#55736f;
+  background:#e8f1ef;border-radius:20px;font:12px Arial,sans-serif;
+}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+thead th{
+  padding:11px 15px;text-align:left;
+  color:#48625e;background:#f8faf9;
+  border-bottom:1px solid var(--line);
+  font-size:12px;font-weight:700;
+}
+thead th:nth-child(2),thead th:nth-child(3){text-align:center}
+tbody td{padding:13px 15px;border-bottom:1px solid #edf1f0;font-size:14px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fbfdfc}
+td.level,td.strength{text-align:center;color:#546a66;white-space:nowrap}
+td.level{font-family:Arial,"Microsoft JhengHei",sans-serif}
+td.name{font-weight:700;color:#253f3b}
+td.name.empty{color:#a0aaa8;font-weight:400}
+.star-mark{color:#a88331;font:700 15px Arial,sans-serif}
+.hidden-by-search{display:none!important}
+.empty-state{
+  padding:34px 16px;text-align:center;color:#879592;
+  background:#fff;border:1px dashed #cbd9d5;border-radius:8px;
+}
+.note{
+  margin:18px 0 0;padding:14px 17px;
+  color:#647571;background:#f8faf9;
+  border-left:3px solid var(--gold);
+  font-size:12px;line-height:1.8;
+}
+.overseas{
+  margin-top:17px;padding:17px 20px;
+  background:#fff;border:1px dashed #cbd9d5;border-radius:8px;
+}
+.overseas h2{margin:0 0 5px;color:#476660;font-size:15px}
+.overseas p{margin:0;color:#85928f;font-size:12px}
+.footer{
+  padding:20px 4px 0;text-align:center;
+  color:#84928f;font-size:11px;line-height:1.7;
+}
+@media(max-width:680px){
+  .site-shell{width:min(100% - 20px,1120px);margin:12px auto 28px}
+  .hero{padding:27px 22px 24px;border-radius:10px 10px 4px 4px}
+  .stats{gap:7px}
+  .stat{padding:12px 10px}
+  .stat-value{font-size:21px}
+  .stat-label{font-size:10px}
+  .section-head{padding:15px 15px 13px}
+  .section-title{font-size:16px}
+}
+</style>
+</head>
+<body>
+<main class="site-shell">
+  <header class="hero">
+    <p class="kicker">WONGMING EMPIRE · LOCAL ADMINISTRATION</p>
+    <h1 id="page-title">地方政府與海外屬地職官表</h1>
+    <p class="hero-subtitle" id="page-subtitle">Local Governments &amp; Overseas Territories — Official Register</p>
+    <div class="hero-rule"></div>
+  </header>
+
+  <section class="stats" aria-label="名冊統計">
+    <div class="stat"><span class="stat-value" id="stat-posts">—</span><span class="stat-label">職位總數</span></div>
+    <div class="stat"><span class="stat-value" id="stat-sections">—</span><span class="stat-label">地方政府分區</span></div>
+    <div class="stat"><span class="stat-value" id="stat-names">—</span><span class="stat-label">已列官員姓名</span></div>
+  </section>
+
+  <div class="toolbar">
+    <label class="search-wrap">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="search" type="search" placeholder="搜尋職銜、職等或官員名稱" aria-label="搜尋名冊">
+    </label>
+    <nav class="jump-links" id="jump-links" aria-label="快速跳至分區"></nav>
+  </div>
+
+  <div id="sections" aria-live="polite"></div>
+  <div id="no-results" class="empty-state" hidden>沒有符合條件的職官資料。</div>
+
+  <aside class="overseas">
+    <h2>海外屬地職官</h2>
+    <p id="overseas-note">海外屬地職官資料尚未列入。</p>
+  </aside>
+
+  <p class="note">資料按提供的原始名冊整理。空白姓名以「—」表示；「*」符號依原表保留，不自行推定其含義。</p>
+  <footer class="footer">黃名帝國｜地方政府與海外屬地職官表<br>名冊資料以 GitHub 專案中的 data.json 為準</footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const sectionsEl=document.getElementById("sections");
+  const jumpEl=document.getElementById("jump-links");
+  const searchEl=document.getElementById("search");
+  const noResults=document.getElementById("no-results");
+  let source=null;
+
+  function node(tag,className,text){
+    const el=document.createElement(tag);
+    if(className)el.className=className;
+    if(text!==undefined)el.textContent=text;
+    return el;
+  }
+
+  function buildCell(row,value,className){
+    const td=node("td",className||"",value||"—");
+    if(className==="name"&&!value)td.classList.add("empty");
+    if(className==="name"&&value==="*"){
+      td.textContent="";
+      td.appendChild(node("span","star-mark","*"));
+    }
+    return td;
+  }
+
+  function render(query){
+    if(!source)return;
+    sectionsEl.replaceChildren();
+    jumpEl.replaceChildren();
+    const term=(query||"").trim().toLocaleLowerCase();
+    let visibleSections=0;
+
+    source.sections.forEach(function(section){
+      const filtered=section.rows.filter(function(row){
+        const text=[row.title,row.level,row.strength,row.name].join(" ").toLocaleLowerCase();
+        return !term||text.includes(term);
+      });
+      if(!filtered.length)return;
+      visibleSections++;
+
+      const jump=node("a","",section.title.replace("內閣政府直轄","直轄").replace("民選地方政府","民選"));
+      jump.href="#"+section.id;
+      jumpEl.appendChild(jump);
+
+      const card=node("section","section");
+      card.id=section.id;
+      const head=node("div","section-head");
+      const left=node("div","");
+      left.appendChild(node("h2","section-title",section.title));
+      left.appendChild(node("p","section-subtitle",section.subtitle));
+      head.appendChild(left);
+      head.appendChild(node("span","section-count",filtered.length+" 個職位"));
+      card.appendChild(head);
+
+      const scroll=node("div","table-scroll");
+      const table=node("table","");
+      const thead=node("thead","");
+      const headRow=node("tr","");
+      ["職銜 / Official Title","職等 / Position Level","定員 / Authorized Strength","官員名稱 / Name of Official"].forEach(function(label){
+        headRow.appendChild(node("th","",label));
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody=node("tbody","");
+      filtered.forEach(function(row){
+        const tr=node("tr","");
+        tr.appendChild(buildCell(row,row.title,""));
+        tr.appendChild(buildCell(row,row.level,"level"));
+        tr.appendChild(buildCell(row,row.strength,"strength"));
+        tr.appendChild(buildCell(row,row.name,"name"));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      scroll.appendChild(table);
+      card.appendChild(scroll);
+      sectionsEl.appendChild(card);
+    });
+
+    noResults.hidden=visibleSections!==0;
+  }
+
+  fetch("./data.json",{cache:"no-store"})
+    .then(function(response){
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      return response.json();
+    })
+    .then(function(data){
+      source=data;
+      document.getElementById("page-title").textContent=data.title;
+      document.getElementById("page-subtitle").textContent=data.englishTitle;
+      const rows=data.sections.reduce(function(sum,section){return sum+section.rows.length;},0);
+      const names=data.sections.reduce(function(sum,section){
+        return sum+section.rows.filter(function(row){return !!row.name&&row.name!=="*";}).length;
+      },0);
+      document.getElementById("stat-posts").textContent=rows;
+      document.getElementById("stat-sections").textContent=data.sections.length;
+      document.getElementById("stat-names").textContent=names;
+      document.getElementById("overseas-note").textContent=data.overseasTerritoriesNote;
+      render("");
+    })
+    .catch(function(error){
+      console.error("名冊資料讀取失敗：",error);
+      sectionsEl.appendChild(node("div","empty-state","名冊資料讀取失敗，請確認 data.json 已部署。"));
+    });
+
+  searchEl.addEventListener("input",function(){render(searchEl.value);});
+})();
+</script>
+</body>
+</html>
