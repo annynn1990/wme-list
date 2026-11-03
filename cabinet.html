@@ -727,12 +727,6 @@ body{
         setStatus('在線中','online');
     }
 
-    function bindToolbar(){
-        const saveButton=document.getElementById('cabinet-save-button');
-        const cancelButton=document.getElementById('cabinet-cancel-button');
-        if(saveButton) saveButton.addEventListener('click',saveToGitHub);
-        if(cancelButton) cancelButton.addEventListener('click',cancelEditing);
-    }
 
     tb.addEventListener('click',function(e){
         if(!editing) return;

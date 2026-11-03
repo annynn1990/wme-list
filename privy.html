@@ -360,9 +360,9 @@ body{
     </div>
 
     <div class="privy-edit-tools" id="privy-edit-tools" hidden>
-        <span>編輯模式：修改完成後提交至 GitHub</span>
+        <span>編輯模式：修改完成後儲存修改</span>
         <div>
-            <button type="button" id="privy-save-button">提交至 GitHub</button>
+            <button type="button" id="privy-save-button">儲存修改</button>
             <button type="button" id="privy-cancel-button">取消修改</button>
         </div>
     </div>
@@ -673,12 +673,6 @@ body{
         setStatus('在線中','online');
     }
 
-    function bindToolbar(){
-        const saveButton=document.getElementById('privy-save-button');
-        const cancelButton=document.getElementById('privy-cancel-button');
-        if(saveButton) saveButton.addEventListener('click',saveToGitHub);
-        if(cancelButton) cancelButton.addEventListener('click',cancelEditing);
-    }
 
     tb.addEventListener('click',function(e){
         if(!editing) return;
