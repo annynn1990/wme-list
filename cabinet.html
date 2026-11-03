@@ -737,8 +737,14 @@ body{
 
     async function loadData(){
         setStatus('讀取中','loading');
+        const controller=new AbortController();
+        const timeout=setTimeout(function(){controller.abort();},12000);
         try{
-            const response=await fetch(CABINET_RAW+'?ts='+Date.now(),{cache:'no-store'});
+            // 資料檔與本頁同在 GitHub Pages，使用同源路徑，避開跨網域 raw CDN。
+            const response=await fetch('./cabinet.json?ts='+Date.now(),{
+                cache:'no-store',
+                signal:controller.signal
+            });
             if(!response.ok) throw new Error('內閣資料讀取失敗（HTTP '+response.status+'）。');
 
             const data=await response.json();
@@ -756,10 +762,14 @@ body{
             cleanEmptyNames();
             setStatus('在線中','online');
         }catch(e){
+            console.error('內閣 資料讀取失敗：',e);
             tb.innerHTML=INITIAL_HTML;
             lockDownEditing();
             cleanEmptyNames();
             setStatus('離線中','error');
+        }finally{
+            clearTimeout(timeout);
+            scheduleEmbedHeight();
         }
     }
 
