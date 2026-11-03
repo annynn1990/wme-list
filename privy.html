@@ -616,7 +616,11 @@ body{
     }
 
     async function verifyPrivyPassword(password){
-        const response=await fetchPrivyApi({
+        let response=await fetch(PRIVY_API,{cache:'no-store',signal:controller.signal});
+            const apiContentType=response.headers.get('content-type')||'';
+            if(response.status===404 && !apiContentType.includes('application/json')){
+                response=await fetch('./data.json',{cache:'no-cache',signal:controller.signal});
+            }
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'verify',password:password}),

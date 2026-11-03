@@ -670,7 +670,11 @@ body{
     }
 
     async function verifyCabinetPassword(password){
-        const response=await fetchCabinetApi({
+        let response=await fetch(CABINET_API,{cache:'no-store',signal:controller.signal});
+            const apiContentType=response.headers.get('content-type')||'';
+            if(response.status===404 && !apiContentType.includes('application/json')){
+                response=await fetch('./cabinet.json',{cache:'no-cache',signal:controller.signal});
+            }
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'verify',password:password}),
