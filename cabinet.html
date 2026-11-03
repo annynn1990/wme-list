@@ -453,7 +453,31 @@ body{
     const header=document.getElementById('cabinet-header-area');
     const footer=document.getElementById('cabinet-footer-text');
 
-    const CABINET_API='https://wme-households-api.onrender.com/api/cabinet';
+    const CABINET_API='/api/cabinet';
+    const CABINET_LEGACY_API='https://wme-households-api.onrender.com/api/cabinet';
+    let cabinetLegacyMode=false;
+    async function fetchCabinetApi(options){
+        if(cabinetLegacyMode){
+            const legacyOptions={...options,headers:{...(options.headers||{})}};
+            if(legacyOptions.headers['X-WME-Edit-Password']){
+                legacyOptions.headers['X-Cabinet-Password']=legacyOptions.headers['X-WME-Edit-Password'];
+                delete legacyOptions.headers['X-WME-Edit-Password'];
+            }
+            return fetch(CABINET_LEGACY_API,legacyOptions);
+        }
+        const response=await fetch(CABINET_API,options);
+        const contentType=response.headers.get('content-type')||'';
+        if(response.status===404 && !contentType.includes('application/json')){
+            cabinetLegacyMode=true;
+            const legacyOptions={...options,headers:{...(options.headers||{})}};
+            if(legacyOptions.headers['X-WME-Edit-Password']){
+                legacyOptions.headers['X-Cabinet-Password']=legacyOptions.headers['X-WME-Edit-Password'];
+                delete legacyOptions.headers['X-WME-Edit-Password'];
+            }
+            return fetch(CABINET_LEGACY_API,legacyOptions);
+        }
+        return response;
+    }
     const CABINET_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/cabinet.json';
 
     let cabinetPassword='';
@@ -646,7 +670,7 @@ body{
     }
 
     async function verifyCabinetPassword(password){
-        const response=await fetch(CABINET_API,{
+        const response=await fetchCabinetApi({
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'verify',password:password}),
@@ -666,11 +690,11 @@ body{
         setStatus('正在儲存','loading');
 
         try{
-            const response=await fetch(CABINET_API,{
+            const response=await fetchCabinetApi({
                 method:'PUT',
                 headers:{
                     'Content-Type':'application/json',
-                    'X-Cabinet-Password':cabinetPassword
+                    'X-WME-Edit-Password':cabinetPassword
                 },
                 body:JSON.stringify({savedData:getSnapshot()}),
                 cache:'no-store'
@@ -741,7 +765,7 @@ body{
         try{
             const controller=new AbortController();
             timeout=setTimeout(function(){controller.abort();},12000);
-            const response=await fetch('./cabinet.json',{
+            const response=await fetchCabinetApi({
                 cache:'no-cache',
                 signal:controller.signal
             });

@@ -399,7 +399,31 @@ body{
     const header=document.getElementById('privy-header-area');
     const footer=document.getElementById('privy-footer-text');
 
-    const PRIVY_API='https://wme-households-api.onrender.com/api/privy';
+    const PRIVY_API='/api/privy';
+    const PRIVY_LEGACY_API='https://wme-households-api.onrender.com/api/privy';
+    let privyLegacyMode=false;
+    async function fetchPrivyApi(options){
+        if(privyLegacyMode){
+            const legacyOptions={...options,headers:{...(options.headers||{})}};
+            if(legacyOptions.headers['X-WME-Edit-Password']){
+                legacyOptions.headers['X-Privy-Password']=legacyOptions.headers['X-WME-Edit-Password'];
+                delete legacyOptions.headers['X-WME-Edit-Password'];
+            }
+            return fetch(PRIVY_LEGACY_API,legacyOptions);
+        }
+        const response=await fetch(PRIVY_API,options);
+        const contentType=response.headers.get('content-type')||'';
+        if(response.status===404 && !contentType.includes('application/json')){
+            privyLegacyMode=true;
+            const legacyOptions={...options,headers:{...(options.headers||{})}};
+            if(legacyOptions.headers['X-WME-Edit-Password']){
+                legacyOptions.headers['X-Privy-Password']=legacyOptions.headers['X-WME-Edit-Password'];
+                delete legacyOptions.headers['X-WME-Edit-Password'];
+            }
+            return fetch(PRIVY_LEGACY_API,legacyOptions);
+        }
+        return response;
+    }
     const PRIVY_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/data.json';
 
     let privyPassword='';
@@ -592,7 +616,7 @@ body{
     }
 
     async function verifyPrivyPassword(password){
-        const response=await fetch(PRIVY_API,{
+        const response=await fetchPrivyApi({
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'verify',password:password}),
@@ -612,11 +636,11 @@ body{
         setStatus('正在儲存','loading');
 
         try{
-            const response=await fetch(PRIVY_API,{
+            const response=await fetchPrivyApi({
                 method:'PUT',
                 headers:{
                     'Content-Type':'application/json',
-                    'X-Privy-Password':privyPassword
+                    'X-WME-Edit-Password':privyPassword
                 },
                 body:JSON.stringify({savedData:getSnapshot()}),
                 cache:'no-store'
@@ -687,7 +711,7 @@ body{
         try{
             const controller=new AbortController();
             timeout=setTimeout(function(){controller.abort();},12000);
-            const response=await fetch('./data.json',{
+            const response=await fetchPrivyApi({
                 cache:'no-cache',
                 signal:controller.signal
             });
