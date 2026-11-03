@@ -8,6 +8,8 @@ const TOKEN = process.env.GH_WRITE_TOKEN || '';
 const PASSWORD = process.env.EDIT_PASSWORD || '';
 const CABINET_PASSWORD = process.env.CABINET_EDIT_PASSWORD || '';
 const CABINET_FILE = process.env.GITHUB_CABINET_DATA_PATH || 'cabinet.json';
+const PRIVY_PASSWORD = process.env.PRIVY_EDIT_PASSWORD || '';
+const PRIVY_FILE = process.env.GITHUB_PRIVY_DATA_PATH || 'data.json';
 const OWNER = process.env.GITHUB_OWNER || 'annynn1990';
 const REPO = process.env.GITHUB_REPO || 'wme-list';
 const BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -200,6 +202,87 @@ async function writeCabinetSnapshot(savedData) {
   };
 }
 
+
+async function readPrivySnapshot() {
+  const r = await fetch(contentsUrlFor(PRIVY_FILE, true), {
+    headers: githubHeaders(false),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('司憲院資料讀取失敗（HTTP ' + r.status + '）');
+
+  const item = await r.json();
+  if (!item || typeof item.content !== 'string') throw new Error('司憲院資料檔格式錯誤');
+  const raw = Buffer.from(item.content.replace(/\\s/g, ''), 'base64').toString('utf8');
+  const data = JSON.parse(raw);
+  if (!data || (typeof data.savedHTML !== 'string' &&
+      (!data.savedData || typeof data.savedData.table !== 'string'))) {
+    throw new Error('司憲院資料缺少 savedHTML 或 savedData.table');
+  }
+  return { data: data, sha: item.sha };
+}
+
+async function writePrivySnapshot(savedData) {
+  if (!TOKEN) {
+    const e = new Error('雲端儲存服務尚未設定寫入權限，資料未儲存。');
+    e.statusCode = 503;
+    throw e;
+  }
+  if (!savedData ||
+      typeof savedData.header !== 'string' ||
+      typeof savedData.table !== 'string' ||
+      typeof savedData.footer !== 'string') {
+    const e = new Error('司憲院資料格式錯誤，必須包含 header、table、footer。');
+    e.statusCode = 400;
+    throw e;
+  }
+
+  const existing = await readPrivySnapshot();
+  if (!existing) {
+    const e = new Error('找不到 data.json，為避免建立空白名冊，已停止儲存。');
+    e.statusCode = 404;
+    throw e;
+  }
+
+  const currentData = existing.data;
+  currentData.version = currentData.version || 1;
+  currentData.updatedAt = new Date().toISOString();
+  currentData.savedHTML = savedData.table;
+  currentData.savedData = {
+    header: savedData.header,
+    table: savedData.table,
+    footer: savedData.footer
+  };
+
+  const payload = {
+    message: 'Update Privy Council officials',
+    branch: BRANCH,
+    sha: existing.sha,
+    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\\n', 'utf8').toString('base64')
+  };
+
+  const r = await fetch(contentsUrlFor(PRIVY_FILE, false), {
+    method: 'PUT',
+    headers: githubHeaders(true),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(20000)
+  });
+
+  if (!r.ok) {
+    const detail = (await r.text().catch(() => '')).slice(0, 220);
+    const e = new Error('司憲院雲端儲存失敗（HTTP ' + r.status + '）' + detail);
+    e.statusCode = r.status === 409 || r.status === 422 ? 409 : 502;
+    throw e;
+  }
+
+  const result = await r.json();
+  return {
+    ok: true,
+    updatedAt: currentData.updatedAt,
+    commit: result.commit && result.commit.sha ? result.commit.sha : null
+  };
+}
+
 async function getData() {
   const saved = await readGitHubSnapshot();
   if (saved) return saved.data;
@@ -274,6 +357,7 @@ const server = http.createServer(async function (req, res) {
       githubWriteConfigured: Boolean(TOKEN),
       editPasswordConfigured: Boolean(PASSWORD),
       cabinetPasswordConfigured: Boolean(CABINET_PASSWORD),
+      privyPasswordConfigured: Boolean(PRIVY_PASSWORD),
       githubWriteConfigured: Boolean(TOKEN)
     });
   }
@@ -310,6 +394,42 @@ const server = http.createServer(async function (req, res) {
       return send(res, 405, { error: 'Method Not Allowed' });
     } catch (error) {
       return send(res, error.statusCode || 502, { error: error.message || '內閣雲端資料服務發生錯誤' });
+    }
+  }
+
+
+  if (url.pathname === '/api/privy') {
+    try {
+      if (req.method === 'GET') {
+        const snapshot = await readPrivySnapshot();
+        if (!snapshot) return send(res, 404, { error: '找不到 data.json' });
+        return send(res, 200, snapshot.data);
+      }
+
+      if (req.method === 'POST') {
+        const body = await readBody(req);
+        if (body.action !== 'verify') return send(res, 400, { error: '未知操作' });
+        if (!PRIVY_PASSWORD) return send(res, 503, { error: '司憲院管理密碼尚未設定' });
+        if (!passwordMatches(body.password, PRIVY_PASSWORD)) {
+          return send(res, 403, { error: '管理密碼錯誤' });
+        }
+        return send(res, 200, { ok: true });
+      }
+
+      if (req.method === 'PUT') {
+        if (!PRIVY_PASSWORD) return send(res, 503, { error: '司憲院管理密碼尚未設定' });
+        if (!passwordMatches(req.headers['x-privy-password'], PRIVY_PASSWORD)) {
+          return send(res, 403, { error: '管理密碼錯誤，未儲存' });
+        }
+        const body = await readBody(req);
+        const result = await writePrivySnapshot(body.savedData);
+        return send(res, 200, result);
+      }
+
+      res.setHeader('Allow', 'GET,POST,PUT,OPTIONS');
+      return send(res, 405, { error: 'Method Not Allowed' });
+    } catch (error) {
+      return send(res, error.statusCode || 502, { error: error.message || '司憲院雲端資料服務發生錯誤' });
     }
   }
 
