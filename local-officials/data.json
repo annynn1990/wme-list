@@ -1,0 +1,167 @@
+{
+  "title": "地方政府與海外屬地職官表",
+  "englishTitle": "Local Governments & Overseas Territories — Official Register",
+  "sections": [
+    {
+      "id": "cabinet-direct",
+      "title": "內閣政府直轄區",
+      "subtitle": "Cabinet Government Directly Administered Areas",
+      "rows": [
+        {
+          "title": "繼圖區",
+          "level": "文化大臣兼(委)任",
+          "strength": "/",
+          "name": "*"
+        },
+        {
+          "title": "仁風大道",
+          "level": "外交大臣兼(委)任",
+          "strength": "/",
+          "name": "*"
+        },
+        {
+          "title": "杜泰區",
+          "level": "內政大臣兼(委)任",
+          "strength": "/",
+          "name": "*"
+        },
+        {
+          "title": "全國歷史景區",
+          "level": "歷史文化局管轄",
+          "strength": "/",
+          "name": "*"
+        }
+      ]
+    },
+    {
+      "id": "xingtan",
+      "title": "內閣政府直轄省（杏壇省）",
+      "subtitle": "Cabinet Direct Province — Xingtan Province",
+      "rows": [
+        {
+          "title": "杏壇省總督",
+          "level": "文化大臣兼(委)任",
+          "strength": "1",
+          "name": "雲鵬天"
+        },
+        {
+          "title": "杏壇省副總督",
+          "level": "4",
+          "strength": "1",
+          "name": "黃祺恩"
+        },
+        {
+          "title": "慈佑堂市長",
+          "level": "5",
+          "strength": "1",
+          "name": "黃祺恩"
+        },
+        {
+          "title": "主教堂市長",
+          "level": "5",
+          "strength": "1",
+          "name": "麥塊"
+        },
+        {
+          "title": "宇華堂市長",
+          "level": "5",
+          "strength": "1",
+          "name": "夏侯易"
+        }
+      ]
+    },
+    {
+      "id": "yanxing",
+      "title": "民選地方政府（延興省）— 第十七屆",
+      "subtitle": "Elected Local Government — Yanxing Province, 17th Term",
+      "rows": [
+        {
+          "title": "延興省總督",
+          "level": "3",
+          "strength": "/",
+          "name": "雨框眼鏡"
+        },
+        {
+          "title": "自由城副總督",
+          "level": "4",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "暢揮園市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "永享堂市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "健康院市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "id": "freedom-city",
+      "title": "民選地方政府（自由城）— 第十七屆",
+      "subtitle": "Elected Local Government — Freedom City, 17th Term",
+      "rows": [
+        {
+          "title": "自由城總督",
+          "level": "3",
+          "strength": "/",
+          "name": "白敖"
+        },
+        {
+          "title": "自由城副總督",
+          "level": "4",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "明政公所市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "雍安公園市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "韻賢角市長",
+          "level": "5",
+          "strength": "1",
+          "name": "李薔賢"
+        },
+        {
+          "title": "客歲家市長",
+          "level": "5",
+          "strength": "1",
+          "name": ""
+        },
+        {
+          "title": "快樂園市長",
+          "level": "5",
+          "strength": "1",
+          "name": "仲尼"
+        },
+        {
+          "title": "顯像館市長",
+          "level": "5",
+          "strength": "1",
+          "name": "關二哥"
+        }
+      ]
+    }
+  ],
+  "overseasTerritoriesNote": "尚未提供海外屬地職官資料。"
+}
