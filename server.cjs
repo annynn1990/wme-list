@@ -175,7 +175,7 @@ async function writeCabinetSnapshot(savedData) {
     message: 'Update Cabinet Government officials',
     branch: BRANCH,
     sha: existing.sha,
-    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\\n', 'utf8').toString('base64')
+    content: Buffer.from(JSON.stringify(currentData, null, 2) + '\n', 'utf8').toString('base64')
   };
 
   const r = await fetch(contentsUrlFor(CABINET_FILE, false), {
