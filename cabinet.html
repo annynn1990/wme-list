@@ -737,16 +737,15 @@ body{
 
     async function loadData(){
         setStatus('讀取中','loading');
-        const controller=new AbortController();
-        const timeout=setTimeout(function(){controller.abort();},12000);
+        let timeout=null;
         try{
-            // 資料檔與本頁同在 GitHub Pages，使用同源路徑，避開跨網域 raw CDN。
-            const response=await fetch('./cabinet.json?ts='+Date.now(),{
-                cache:'no-store',
+            const controller=new AbortController();
+            timeout=setTimeout(function(){controller.abort();},12000);
+            const response=await fetch('./cabinet.json',{
+                cache:'no-cache',
                 signal:controller.signal
             });
             if(!response.ok) throw new Error('內閣資料讀取失敗（HTTP '+response.status+'）。');
-
             const data=await response.json();
             if(data.savedData){
                 if(typeof data.savedData.header==='string') header.innerHTML=data.savedData.header;
@@ -757,18 +756,19 @@ body{
             }else{
                 throw new Error('cabinet.json 缺少 savedHTML。');
             }
-
             lockDownEditing();
             cleanEmptyNames();
+            status.title='';
             setStatus('在線中','online');
         }catch(e){
-            console.error('內閣 資料讀取失敗：',e);
+            console.error('內閣資料讀取失敗：',e);
             tb.innerHTML=INITIAL_HTML;
             lockDownEditing();
             cleanEmptyNames();
+            status.title=e && e.message ? e.message : '未知讀取錯誤';
             setStatus('離線中','error');
         }finally{
-            clearTimeout(timeout);
+            if(timeout!==null) clearTimeout(timeout);
             scheduleEmbedHeight();
         }
     }
@@ -781,6 +781,9 @@ body{
         const passwordInput=modal.querySelector('#cabinet-admin-password');
         setTimeout(function(){passwordInput.focus();},0);
     });
+
+    bindToolbar();
+    loadData().then(scheduleEmbedHeight);
 
     // iframe 嵌入支援：只回報內容本身高度，不把 iframe 視窗高度算進去。
     function notifyEmbedHeight(){
@@ -828,8 +831,7 @@ body{
         scheduleEmbedHeight();
     }
 
-    bindToolbar();
-    loadData().then(scheduleEmbedHeight);
+
 })();
 </script>
 </body>
