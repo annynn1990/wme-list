@@ -670,11 +670,7 @@ body{
     }
 
     async function verifyCabinetPassword(password){
-        let response=await fetch(CABINET_API,{cache:'no-store',signal:controller.signal});
-            const apiContentType=response.headers.get('content-type')||'';
-            if(response.status===404 && !apiContentType.includes('application/json')){
-                response=await fetch('./cabinet.json',{cache:'no-cache',signal:controller.signal});
-            }
+        const response=await fetchCabinetApi({
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({action:'verify',password:password}),
@@ -769,10 +765,17 @@ body{
         try{
             const controller=new AbortController();
             timeout=setTimeout(function(){controller.abort();},12000);
-            const response=await fetchCabinetApi({
-                cache:'no-cache',
+            let response=await fetch(CABINET_API,{
+                cache:'no-store',
                 signal:controller.signal
             });
+            const apiContentType=response.headers.get('content-type')||'';
+            if(response.status===404 && !apiContentType.includes('application/json')){
+                response=await fetch('./cabinet.json',{
+                    cache:'no-cache',
+                    signal:controller.signal
+                });
+            }
             if(!response.ok) throw new Error('內閣資料讀取失敗（HTTP '+response.status+'）。');
             const data=await response.json();
             if(data.savedData){
