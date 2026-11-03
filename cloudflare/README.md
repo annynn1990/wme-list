@@ -1,21 +1,26 @@
-# Cloudflare Pages + Functions + D1
+# wme-list Cloudflare Worker
 
-## One-time Cloudflare setup
+## Production Worker
 
-1. Create a Pages project connected to `annynn1990/wme-list`, production branch `main`.
-2. Set build command to empty and output directory to `.` (repository root).
-3. Create D1 database `wme-list-db`.
-4. In Pages > Settings > Functions, create D1 binding: variable name `DB`, database `wme-list-db`.
-5. Add Pages Secret `WME_EDIT_PASSWORD` using the existing editor password.
-6. Run `cloudflare/migrations/0001_create_wme_documents.sql` once in D1 Console.
-7. Redeploy Pages and check `/api/health`; both flags must be true.
+- Base URL: https://wme-list-site.annynn1990.workers.dev
+- Privy Council: /privy.html
+- Cabinet: /cabinet.html
+- Health: /api/health
+- API: GET/POST/PUT /api/privy and /api/cabinet
 
-## API
+## Bindings
 
-- GET/POST/PUT `/api/privy`
-- GET/POST/PUT `/api/cabinet`
-- GET `/api/health`
+- D1 binding: `DB` → database `wme-list-db`
+- Secret binding: `WME_EDIT_PASSWORD`
+- Source entry: `cloudflare/worker.js`
 
-The original HTML editing interface remains. The API saves header/table/footer to D1; no GitHub token or browser localStorage is used.
+The Worker serves the two existing HTML editor pages and proxies their read/verify/save requests to D1. It does not use localStorage or a browser GitHub token. The Pages Git integration is not required for this Worker deployment.
 
-The migration imports exact current `data.json` and `cabinet.json` source documents with INSERT OR IGNORE. It does not replace existing D1 rows. GitHub Pages + Render remain as fallback until Cloudflare Pages is configured and tested.
+## Database
+
+Initial migration: `migrations/0001_create_wme_documents.sql`.
+The current D1 database contains the `privy` and `cabinet` rows. The migration uses INSERT OR IGNORE to avoid overwriting them.
+
+## Deployment
+
+The Worker is deployed directly through the Cloudflare Workers API. Bindings and secret are configured at upload time. When HTML or Worker code changes, update `cloudflare/worker.js` and upload a new Worker version with the same bindings.
