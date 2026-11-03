@@ -24,12 +24,6 @@
           "level": "內政大臣兼(委)任",
           "strength": "/",
           "name": "*"
-        },
-        {
-          "title": "全國歷史景區",
-          "level": "歷史文化局管轄",
-          "strength": "/",
-          "name": "*"
         }
       ]
     },
@@ -40,7 +34,7 @@
       "rows": [
         {
           "title": "杏壇省總督",
-          "level": "文化大臣兼(委)任",
+          "level": "1",
           "strength": "1",
           "name": "雲鵬天"
         },
@@ -65,7 +59,7 @@
       "rows": [
         {
           "title": "延興省總督",
-          "level": "3",
+          "level": "1",
           "strength": "/",
           "name": "雨框眼鏡"
         },
@@ -90,7 +84,7 @@
       "rows": [
         {
           "title": "自由城總督",
-          "level": "3",
+          "level": "1",
           "strength": "/",
           "name": "白敖"
         },
@@ -113,14 +107,14 @@
   "overseasTerritories": [
     {
       "title": "雍安特區總督",
-      "level": "",
+      "level": "1",
       "strength": "",
       "name": "",
       "notes": ""
     },
     {
       "title": "亞馬遜尼亞總督",
-      "level": "",
+      "level": "1",
       "strength": "",
       "name": "",
       "notes": ""
