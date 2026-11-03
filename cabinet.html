@@ -414,9 +414,9 @@ body{
     </div>
 
     <div class="cabinet-edit-tools" id="cabinet-edit-tools" hidden>
-        <span>編輯模式：修改完成後提交至 GitHub</span>
+        <span>編輯模式：修改完成後儲存至雲端</span>
         <div>
-            <button type="button" id="cabinet-save-button">提交至 GitHub</button>
+            <button type="button" id="cabinet-save-button">儲存修改</button>
             <button type="button" id="cabinet-cancel-button">取消修改</button>
         </div>
     </div>
@@ -453,12 +453,9 @@ body{
     const header=document.getElementById('cabinet-header-area');
     const footer=document.getElementById('cabinet-footer-text');
 
-    const GH_API='https://api.github.com/repos/annynn1990/wme-list/contents/cabinet.json';
-    const GH_RAW='https://raw.githubusercontent.com/annynn1990/wme-list/main/cabinet.json';
-    const GH_BRANCH='main';
-    const ADMIN_PASSWORD='admin';
+    const CABINET_API='https://wme-households-api.onrender.com/api/cabinet';
 
-    let githubToken='';
+    let cabinetPassword='';
     let editing=false;
     let backup=null;
 
@@ -520,7 +517,7 @@ body{
     }
 
     function markDirty(){
-        if(editing) setStatus('正在讀取資料','loading');
+        if(editing) setStatus('尚未儲存','loading');
     }
 
     function makeEditable(el){
@@ -575,9 +572,10 @@ body{
 
     function closeEditing(){
         lockDownEditing();
-        githubToken='';
+        cabinetPassword='';
         backup=null;
     }
+
 
     function createAuthModal(){
         let modal=document.getElementById('cabinet-auth-modal');
@@ -592,9 +590,7 @@ body{
                 '<div class="cabinet-auth-title" id="cabinet-auth-title">內閣管理員驗證</div>'+
                 '<label class="cabinet-auth-label" for="cabinet-admin-password">管理密碼</label>'+
                 '<input class="cabinet-auth-input" id="cabinet-admin-password" type="password" autocomplete="off" placeholder="輸入管理密碼">'+
-                '<label class="cabinet-auth-label" for="cabinet-github-token">GitHub Fine-grained Token</label>'+
-                '<input class="cabinet-auth-input" id="cabinet-github-token" type="password" autocomplete="off" placeholder="github_pat_...">'+
-                '<div class="cabinet-auth-help">Token 僅用於本次頁面工作階段，不會寫入瀏覽器儲存。請只授權 annynn1990/wme-list，並設定 Contents: Read and write。</div>'+
+                '<div class="cabinet-auth-help">輸入管理密碼即可編輯，修改後直接儲存至雲端。</div>'+
                 '<div class="cabinet-auth-error" id="cabinet-auth-error"></div>'+
                 '<div class="cabinet-auth-actions">'+
                     '<button type="button" id="cabinet-auth-cancel">取消</button>'+
@@ -605,55 +601,41 @@ body{
         document.body.appendChild(modal);
 
         const passwordInput=modal.querySelector('#cabinet-admin-password');
-        const tokenInput=modal.querySelector('#cabinet-github-token');
         const error=modal.querySelector('#cabinet-auth-error');
 
-        modal.querySelector('#cabinet-auth-cancel').addEventListener('click',function(){
+        function dismiss(){
             modal.hidden=true;
             passwordInput.value='';
-            tokenInput.value='';
             error.textContent='';
-        });
+        }
+
+        modal.querySelector('#cabinet-auth-cancel').addEventListener('click',dismiss);
 
         modal.querySelector('#cabinet-auth-submit').addEventListener('click',async function(){
             const password=passwordInput.value;
-            const token=tokenInput.value.trim();
-
-            if(password!==ADMIN_PASSWORD){
-                error.textContent='管理密碼錯誤。';
-                return;
-            }
-            if(!token){
-                error.textContent='請輸入 GitHub Fine-grained Token。';
+            if(!password){
+                error.textContent='請輸入管理密碼。';
                 return;
             }
 
             const button=modal.querySelector('#cabinet-auth-submit');
             button.disabled=true;
-            error.textContent='正在驗證 GitHub 權限……';
+            error.textContent='正在驗證……';
 
             try{
-                await verifyGitHubToken(token);
-                githubToken=token;
-                modal.hidden=true;
-                passwordInput.value='';
-                tokenInput.value='';
-                error.textContent='';
+                await verifyCabinetPassword(password);
+                cabinetPassword=password;
+                dismiss();
                 enableEditing();
             }catch(e){
-                error.textContent=e.message||'GitHub Token 驗證失敗。';
+                error.textContent=e.message||'管理員驗證失敗。';
             }finally{
                 button.disabled=false;
             }
         });
 
         modal.addEventListener('keydown',function(e){
-            if(e.key==='Escape'){
-                modal.hidden=true;
-                passwordInput.value='';
-                tokenInput.value='';
-                error.textContent='';
-            }
+            if(e.key==='Escape') dismiss();
             if(e.key==='Enter' && e.target.tagName==='INPUT'){
                 modal.querySelector('#cabinet-auth-submit').click();
             }
@@ -662,106 +644,54 @@ body{
         return modal;
     }
 
-    function githubHeaders(token){
-        return {
-            'Accept':'application/vnd.github+json',
-            'Authorization':'Bearer '+token,
-            'X-GitHub-Api-Version':'2022-11-28'
-        };
-    }
-
-    async function verifyGitHubToken(token){
-        const response=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
-            method:'GET',
-            headers:githubHeaders(token),
+    async function verifyCabinetPassword(password){
+        const response=await fetch(CABINET_API,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'verify',password:password}),
             cache:'no-store'
         });
-
-        if(response.status===401) throw new Error('GitHub Token 無效或已過期。');
-        if(response.status===403) throw new Error('GitHub 拒絕存取。請確認 Token 已授權此 repository 的 Contents 讀寫權限。');
-        if(response.status===404) throw new Error('Token 無法讀取 annynn1990/wme-list/cabinet.json，請確認 Repository access 設定。');
-        if(!response.ok) throw new Error('GitHub 驗證失敗（HTTP '+response.status+'）。');
-
-        const file=await response.json();
-        if(!file.sha) throw new Error('GitHub 未回傳檔案版本資訊。');
-        return file;
+        const result=await response.json().catch(function(){return {};});
+        if(response.status===403) throw new Error('管理密碼錯誤。');
+        if(!response.ok) throw new Error(result.error||('驗證服務暫時無法使用（HTTP '+response.status+'）。'));
+        return true;
     }
 
-    function decodeBase64Utf8(value){
-        const binary=atob(value.replace(/\s/g,''));
-        const bytes=new Uint8Array(binary.length);
-        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-        return new TextDecoder('utf-8').decode(bytes);
-    }
-
-    function encodeBase64Utf8(value){
-        const bytes=new TextEncoder().encode(value);
-        let binary='';
-        const chunkSize=0x8000;
-        for(let i=0;i<bytes.length;i+=chunkSize){
-            binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
-        }
-        return btoa(binary);
-    }
-
-    async function saveToGitHub(){
-        if(!editing || !githubToken) return;
+    async function saveToCloud(){
+        if(!editing || !cabinetPassword) return;
 
         const saveButton=document.getElementById('cabinet-save-button');
         if(saveButton) saveButton.disabled=true;
-        setStatus('正在提交至 GitHub main 分支……','loading');
+        setStatus('正在儲存','loading');
 
         try{
-            // 先取得最新 SHA，避免使用舊版本覆蓋其他人的提交。
-            const currentResponse=await fetch(GH_API+'?ref='+encodeURIComponent(GH_BRANCH),{
-                method:'GET',
-                headers:githubHeaders(githubToken),
+            const response=await fetch(CABINET_API,{
+                method:'PUT',
+                headers:{
+                    'Content-Type':'application/json',
+                    'X-Cabinet-Password':cabinetPassword
+                },
+                body:JSON.stringify({savedData:getSnapshot()}),
                 cache:'no-store'
             });
-
-            if(!currentResponse.ok){
-                const message=currentResponse.status===401?'GitHub Token 已失效。':
-                    currentResponse.status===403?'GitHub 拒絕寫入，請確認 Contents: Read and write 權限。':
-                    '無法取得 GitHub 最新檔案版本（HTTP '+currentResponse.status+'）。';
-                throw new Error(message);
-            }
-
-            const currentFile=await currentResponse.json();
-            const currentData=JSON.parse(decodeBase64Utf8(currentFile.content||''));
-            const savedData=getSnapshot();
-
-            currentData.version=currentData.version||1;
-            currentData.updatedAt=new Date().toISOString();
-            currentData.savedHTML=savedData.table; // 相容原有 savedHTML 資料格式
-            currentData.savedData=savedData;       // 同步保存標題、表格、頁尾
-
-            const writeResponse=await fetch(GH_API,{
-                method:'PUT',
-                headers:Object.assign({'Content-Type':'application/json'},githubHeaders(githubToken)),
-                body:JSON.stringify({
-                    message:'Update Cabinet Government officials',
-                    content:encodeBase64Utf8(JSON.stringify(currentData,null,2)+'\n'),
-                    sha:currentFile.sha,
-                    branch:GH_BRANCH
-                })
-            });
-
-            const writeResult=await writeResponse.json();
-            if(!writeResponse.ok){
-                if(writeResponse.status===409 || writeResponse.status===422){
-                    throw new Error('GitHub 檔案已被其他修改更新，請重新載入頁面後再編輯，避免覆蓋新資料。');
-                }
-                throw new Error(writeResult.message||('GitHub 提交失敗（HTTP '+writeResponse.status+'）。'));
-            }
+            const result=await response.json().catch(function(){return {};});
+            if(!response.ok) throw new Error(result.error||('雲端儲存失敗（HTTP '+response.status+'）。'));
 
             closeEditing();
             setStatus('在線中','online');
         }catch(e){
             setStatus('離線中','error');
-            alert(e.message);
+            alert(e.message||'雲端儲存失敗，修改尚未提交。');
         }finally{
             if(saveButton) saveButton.disabled=false;
         }
+    }
+
+    function bindToolbar(){
+        const saveButton=document.getElementById('cabinet-save-button');
+        const cancelButton=document.getElementById('cabinet-cancel-button');
+        if(saveButton) saveButton.addEventListener('click',saveToCloud);
+        if(cancelButton) cancelButton.addEventListener('click',cancelEditing);
     }
 
     function cancelEditing(){
@@ -807,8 +737,8 @@ body{
     async function loadData(){
         setStatus('讀取中','loading');
         try{
-            const response=await fetch(GH_RAW+'?ts='+Date.now(),{cache:'no-store'});
-            if(!response.ok) throw new Error('GitHub cabinet.json 讀取失敗（HTTP '+response.status+'）。');
+            const response=await fetch(CABINET_API+'?ts='+Date.now(),{cache:'no-store'});
+            if(!response.ok) throw new Error('內閣資料讀取失敗（HTTP '+response.status+'）。');
 
             const data=await response.json();
             if(data.savedData){
