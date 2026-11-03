@@ -91,5 +91,21 @@
       ]
     }
   ],
-  "overseasTerritoriesNote": "尚未提供海外屬地職官資料。"
+  "overseasTerritoriesNote": "尚未提供海外屬地職官資料。",
+  "overseasTerritories": [
+    {
+      "title": "雍安特區總督",
+      "level": "",
+      "strength": "",
+      "name": "",
+      "notes": ""
+    },
+    {
+      "title": "亞馬遜尼亞總督",
+      "level": "",
+      "strength": "",
+      "name": "",
+      "notes": ""
+    }
+  ]
 }
